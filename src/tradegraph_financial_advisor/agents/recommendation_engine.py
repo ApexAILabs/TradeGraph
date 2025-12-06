@@ -115,7 +115,7 @@ class TradingRecommendationEngine(BaseAgent):
 
             # Calculate position sizing
             recommended_allocation = self._calculate_position_size(
-                confidence_score, risk_level, risk_preferences
+                confidence_score, risk_level, risk_preferences, recommendation_type
             )
 
             # Calculate target price and stop loss
@@ -390,9 +390,19 @@ class TradingRecommendationEngine(BaseAgent):
         self,
         confidence_score: float,
         risk_level: RiskLevel,
-        risk_preferences: Dict[str, Any]
+        risk_preferences: Dict[str, Any],
+        recommendation_type: RecommendationType
     ) -> float:
-        base_allocation = confidence_score * 0.1  # Max 10% base allocation
+        
+        RECOMMENDATION_WEIGHTS = {
+            RecommendationType.STRONG_BUY: 2.0,
+            RecommendationType.BUY: 1.5,
+            RecommendationType.HOLD: 0.8,
+            RecommendationType.SELL: 0.3,
+            RecommendationType.STRONG_SELL: 0.1
+        }
+        
+        base_allocation = confidence_score * RECOMMENDATION_WEIGHTS[recommendation_type]
 
         # Adjust for risk level
         risk_multipliers = {
@@ -414,7 +424,7 @@ class TradingRecommendationEngine(BaseAgent):
 
         final_allocation = risk_adjusted * tolerance_multipliers.get(risk_tolerance, 1.0)
 
-        return max(0.01, min(0.25, final_allocation))  # Between 1% and 25%
+        return max(0.01, final_allocation)  # was Between 1% and 25% - changed for the new optimization logic
 
     async def _calculate_price_targets(
         self,
@@ -579,7 +589,7 @@ class TradingRecommendationEngine(BaseAgent):
             )
 
             return portfolio
-
+        
         except Exception as e:
             logger.error(f"Error optimizing portfolio: {str(e)}")
             return None
@@ -589,14 +599,57 @@ class TradingRecommendationEngine(BaseAgent):
         recommendations: List[TradingRecommendation],
         constraints: Dict[str, Any]
     ) -> List[TradingRecommendation]:
-        # Simple allocation optimization
         total_allocation = sum(rec.recommended_allocation for rec in recommendations)
 
-        if total_allocation > 1.0:
-            # Scale down allocations
-            scale_factor = 0.95 / total_allocation  # Leave 5% cash
+        if total_allocation == 0:
+            return recommendations
+
+        # scale all allocations proportionally to sum to 95%
+        target_allocation = 0.95
+        scale_factor = target_allocation / total_allocation
+
+        for rec in recommendations:
+            rec.recommended_allocation *= scale_factor
+
+        # apply individual position cap (25% max per stock)
+        # If any position exceeds 25%, redistribute the excess to others
+        max_position = 0.25
+
+        # Keep iterating until no position exceeds the cap
+        max_iterations = 10
+        for _ in range(max_iterations):
+            excess = 0
+            capped_count = 0
+
+            # Calculate excess from capped positions
             for rec in recommendations:
-                rec.recommended_allocation *= scale_factor
+                if rec.recommended_allocation > max_position:
+                    excess += rec.recommended_allocation - max_position
+                    rec.recommended_allocation = max_position
+                    capped_count += 1
+
+            # If no excess, its done
+            if excess <= 0.0001:  # Small threshold for floating point
+                break
+
+            # Redistribute excess to uncapped positions proportionally
+            uncapped_recs = [rec for rec in recommendations if rec.recommended_allocation < max_position]
+
+            if uncapped_recs:
+                uncapped_total = sum(rec.recommended_allocation for rec in uncapped_recs)
+                if uncapped_total > 0:
+                    for rec in uncapped_recs:
+                        # Distribute excess proportionally
+                        rec.recommended_allocation += excess * (rec.recommended_allocation / uncapped_total)
+                        
+        # Final normalization: if all positions got capped, scale up to reach target
+        final_total = sum(rec.recommended_allocation for rec in recommendations)
+        
+        if final_total < target_allocation - 0.001:  # If its below target
+            # Scale everything up proportionally to reach target
+            final_scale = target_allocation / final_total
+            for rec in recommendations:
+                rec.recommended_allocation *= final_scale
 
         return recommendations
 

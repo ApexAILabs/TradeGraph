@@ -38,6 +38,7 @@ pip-wheel-metadata/
 .venv/
 venv/
 .envrc
+tgenv
 
 # Node / frontend
 node_modules/

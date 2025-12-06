@@ -11,6 +11,7 @@ from .agents.report_analysis_agent import ReportAnalysisAgent
 from .config.settings import settings
 from .models.recommendations import PortfolioRecommendation
 from .utils.helpers import save_analysis_results
+from .visualization import charts
 
 
 class FinancialAdvisor:
@@ -378,6 +379,25 @@ async def main():
                 logger.info(f"Analysis results automatically saved to: {filepath}")
             except Exception as e:
                 logger.warning(f"Failed to save results file: {str(e)}")
+                
+            # Generate portfolio allocation chart
+            try:
+                portfolio_rec = results.get('portfolio_recommendation')
+                
+                if portfolio_rec and portfolio_rec.get('recommendations'):
+                    recommendations = portfolio_rec.get('recommendations', [])
+                    
+                    chart_path = charts.create_portfolio_allocation_chart(
+                        recommendations=recommendations,
+                        output_path="results/portfolio_allocation.html"
+                    )
+                    
+                    logger.info(f"Portfolio allocation chart saved to: {chart_path}")
+                else:
+                    logger.warning("No recommendations found to create allocation chart")
+                    
+            except Exception as e:
+                logger.warning(f"Failed to generate portfolio allocation chart: {str(e)}")
 
             # Display results based on output format
             if args.output_format == "json":

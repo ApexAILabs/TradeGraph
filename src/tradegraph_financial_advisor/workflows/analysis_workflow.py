@@ -9,6 +9,7 @@ from loguru import logger
 
 from ..agents.news_agent import NewsReaderAgent
 from ..agents.financial_agent import FinancialAnalysisAgent
+from ..agents.recommendation_engine import TradingRecommendationEngine
 from ..services.firecrawl_service import FirecrawlService
 from ..models.financial_data import AnalysisContext
 from ..models.recommendations import (
@@ -44,6 +45,7 @@ class FinancialAnalysisWorkflow:
         )
         self.news_agent = NewsReaderAgent()
         self.financial_agent = FinancialAnalysisAgent()
+        self.recommendation_engine = TradingRecommendationEngine()
         self.firecrawl_service = FirecrawlService()
         self.workflow = None
         self._build_workflow()
@@ -334,8 +336,26 @@ class FinancialAnalysisWorkflow:
                         rec_data["current_price"] = current_price
                         rec_data["company_name"] = symbol  # Fallback
 
+                        # Handle missing sentiment_score
+                        if rec_data.get("sentiment_score") is None:
+                            rec_data["sentiment_score"] = 0.5
+
+                        # Calculate recommended allocation using new logic
+                        confidence_score = rec_data.get("confidence_score", 0.5)
+                        risk_level = RiskLevel(rec_data.get("risk_level", "medium"))
+                        recommendation_type = RecommendationType(rec_data.get("recommendation", "hold"))
+                        risk_preferences = {"risk_tolerance": state["analysis_context"].get("risk_tolerance", "medium")}
+
+                        # Use position sizing logic
+                        rec_data["recommended_allocation"] = self.recommendation_engine._calculate_position_size(
+                            confidence_score=confidence_score,
+                            risk_level=risk_level,
+                            risk_preferences=risk_preferences,
+                            recommendation_type=recommendation_type
+                        )
+
                         recommendation = TradingRecommendation(**rec_data)
-                        recommendations.append(recommendation.dict())
+                        recommendations.append(recommendation)
 
                     except Exception as e:
                         logger.warning(f"Failed to parse recommendation for {symbol}: {str(e)}")
@@ -343,7 +363,19 @@ class FinancialAnalysisWorkflow:
                 except Exception as e:
                     logger.warning(f"Failed to generate recommendation for {symbol}: {str(e)}")
 
-            state["recommendations"] = recommendations
+            # Optimize portfolio allocations after all recommendations are collected
+            if recommendations:
+                portfolio_constraints = {
+                    "portfolio_size": state["analysis_context"].get("portfolio_size", 100000),
+                    "max_positions": 10
+                }
+                optimized_recs = await self.recommendation_engine._optimize_allocations(
+                    recommendations,
+                    portfolio_constraints
+                )
+                state["recommendations"] = [rec.dict() for rec in optimized_recs]
+            else:
+                state["recommendations"] = []
 
             state["messages"].append(
                 AIMessage(content=f"Generated {len(recommendations)} trading recommendations")
