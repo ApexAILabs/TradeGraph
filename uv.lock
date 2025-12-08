@@ -1951,6 +1951,15 @@ wheels = [
 ]
 
 [[package]]
+name = "narwhals"
+version = "2.13.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/89/ea/f82ef99ced4d03c33bb314c9b84a08a0a86c448aaa11ffd6256b99538aa5/narwhals-2.13.0.tar.gz", hash = "sha256:ee94c97f4cf7cfeebbeca8d274784df8b3d7fd3f955ce418af998d405576fdd9", size = 594555 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/87/0d/1861d1599571974b15b025e12b142d8e6b42ad66c8a07a89cb0fc21f1e03/narwhals-2.13.0-py3-none-any.whl", hash = "sha256:9b795523c179ca78204e3be53726da374168f906e38de2ff174c2363baaaf481", size = 426407 },
+]
+
+[[package]]
 name = "networkx"
 version = "3.4.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2503,6 +2512,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/61/bd/8c02c3388ae14edc374ac9f22cbe4e14826c6a51b2d8eaf86e89fabee264/playwright-1.56.0-py3-none-win32.whl", hash = "sha256:d87b79bcb082092d916a332c27ec9732e0418c319755d235d93cc6be13bdd721", size = 35639837 },
     { url = "https://files.pythonhosted.org/packages/64/27/f13b538fbc6b7a00152f4379054a49f6abc0bf55ac86f677ae54bc49fb82/playwright-1.56.0-py3-none-win_amd64.whl", hash = "sha256:3c7fc49bb9e673489bf2622855f9486d41c5101bbed964638552b864c4591f94", size = 35639843 },
     { url = "https://files.pythonhosted.org/packages/f2/c7/3ee8b556107995846576b4fe42a08ed49b8677619421f2afacf6ee421138/playwright-1.56.0-py3-none-win_arm64.whl", hash = "sha256:2745490ae8dd58d27e5ea4d9aa28402e8e2991eb84fb4b2fd5fbde2106716f6f", size = 31248959 },
+]
+
+[[package]]
+name = "plotly"
+version = "6.5.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "narwhals" },
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/94/05/1199e2a03ce6637960bc1e951ca0f928209a48cfceb57355806a88f214cf/plotly-6.5.0.tar.gz", hash = "sha256:d5d38224883fd38c1409bef7d6a8dc32b74348d39313f3c52ca998b8e447f5c8", size = 7013624 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e7/c3/3031c931098de393393e1f93a38dc9ed6805d86bb801acc3cf2d5bd1e6b7/plotly-6.5.0-py3-none-any.whl", hash = "sha256:5ac851e100367735250206788a2b1325412aa4a4917a4fe3e6f0bc5aa6f3d90a", size = 9893174 },
 ]
 
 [[package]]
@@ -3824,6 +3846,7 @@ dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pandas" },
+    { name = "plotly" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "python-dateutil" },
@@ -3863,6 +3886,7 @@ requires-dist = [
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.5.0" },
     { name = "numpy", specifier = ">=1.24.0" },
     { name = "pandas", specifier = ">=2.1.0" },
+    { name = "plotly", specifier = ">=5.15.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.4.0" },
     { name = "pydantic", specifier = ">=2.5.0" },
     { name = "pydantic-settings", specifier = ">=2.0.0" },
