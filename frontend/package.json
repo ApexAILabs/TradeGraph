@@ -35,7 +35,8 @@
     "react-chartjs-2": "^5.2.0",
     "chart.js": "^4.4.0",
     "react-beautiful-dnd": "^13.1.1",
-    "react-loading-skeleton": "^3.3.1"
+    "react-loading-skeleton": "^3.3.1",
+    "react-force-graph-2d": "^1.25.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.15",
