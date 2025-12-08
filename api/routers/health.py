@@ -1,8 +1,8 @@
 import asyncio
 import time
 import psutil
-from datetime import datetime, timedelta
-from typing import Dict, Any
+from datetime import datetime
+from typing import Dict
 
 from fastapi import APIRouter, HTTPException
 
@@ -22,9 +22,9 @@ async def health_check():
         data={
             "status": "healthy",
             "timestamp": datetime.now().isoformat(),
-            "uptime_seconds": time.time() - startup_time
+            "uptime_seconds": time.time() - startup_time,
         },
-        message="Service is healthy"
+        message="Service is healthy",
     )
 
 
@@ -38,7 +38,7 @@ async def detailed_health_check():
         # Get system metrics
         cpu_percent = psutil.cpu_percent(interval=1)
         memory = psutil.virtual_memory()
-        disk = psutil.disk_usage('/')
+        disk = psutil.disk_usage("/")
 
         # Test critical services
         services_status = await test_services()
@@ -56,28 +56,23 @@ async def detailed_health_check():
                 "memory": {
                     "total_gb": round(memory.total / (1024**3), 2),
                     "available_gb": round(memory.available / (1024**3), 2),
-                    "used_percent": memory.percent
+                    "used_percent": memory.percent,
                 },
                 "disk": {
                     "total_gb": round(disk.total / (1024**3), 2),
                     "free_gb": round(disk.free / (1024**3), 2),
-                    "used_percent": round((disk.used / disk.total) * 100, 1)
-                }
-            }
+                    "used_percent": round((disk.used / disk.total) * 100, 1),
+                },
+            },
         )
 
         return APIResponse(
-            success=True,
-            data=health_data.dict(),
-            message="Detailed health check completed"
+            success=True, data=health_data.dict(), message="Detailed health check completed"
         )
 
     except Exception as e:
         return APIResponse(
-            success=False,
-            data=None,
-            message="Health check failed",
-            error={"detail": str(e)}
+            success=False, data=None, message="Health check failed", error={"detail": str(e)}
         )
 
 
@@ -97,6 +92,7 @@ async def test_services() -> Dict[str, str]:
     try:
         # Test if we can import and initialize core components
         from tradegraph_financial_advisor import FinancialAdvisor
+
         advisor = FinancialAdvisor()
         services["financial_advisor"] = "healthy"
     except Exception:
@@ -105,22 +101,13 @@ async def test_services() -> Dict[str, str]:
     # Test OpenAI connectivity (simulated)
     try:
         import os
+
         if os.getenv("OPENAI_API_KEY"):
             services["openai_api"] = "configured"
         else:
             services["openai_api"] = "not_configured"
     except Exception:
         services["openai_api"] = "error"
-
-    # Test Firecrawl connectivity (simulated)
-    try:
-        import os
-        if os.getenv("FIRECRAWL_API_KEY"):
-            services["firecrawl_api"] = "configured"
-        else:
-            services["firecrawl_api"] = "not_configured"
-    except Exception:
-        services["firecrawl_api"] = "error"
 
     return services
 
@@ -137,7 +124,7 @@ async def get_system_metrics():
         memory = psutil.virtual_memory()
 
         # Disk metrics
-        disk = psutil.disk_usage('/')
+        disk = psutil.disk_usage("/")
 
         # Network metrics (if available)
         try:
@@ -146,7 +133,7 @@ async def get_system_metrics():
                 "bytes_sent": network.bytes_sent,
                 "bytes_recv": network.bytes_recv,
                 "packets_sent": network.packets_sent,
-                "packets_recv": network.packets_recv
+                "packets_recv": network.packets_recv,
             }
         except Exception:
             network_stats = {}
@@ -162,7 +149,7 @@ async def get_system_metrics():
             total_requests=0,  # Would be tracked by middleware
             average_response_time=0.0,  # Would be tracked by middleware
             error_rate=0.0,  # Would be tracked by middleware
-            uptime_seconds=time.time() - startup_time
+            uptime_seconds=time.time() - startup_time,
         )
 
         detailed_metrics = {
@@ -171,36 +158,36 @@ async def get_system_metrics():
                 "cpu": {
                     "usage_percent": cpu_percent,
                     "core_count": cpu_count,
-                    "load_average": list(psutil.getloadavg()) if hasattr(psutil, 'getloadavg') else []
+                    "load_average": (
+                        list(psutil.getloadavg()) if hasattr(psutil, "getloadavg") else []
+                    ),
                 },
                 "memory": {
                     "total_gb": round(memory.total / (1024**3), 2),
                     "available_gb": round(memory.available / (1024**3), 2),
                     "used_gb": round(memory.used / (1024**3), 2),
                     "used_percent": memory.percent,
-                    "cached_gb": round(getattr(memory, 'cached', 0) / (1024**3), 2)
+                    "cached_gb": round(getattr(memory, "cached", 0) / (1024**3), 2),
                 },
                 "disk": {
                     "total_gb": round(disk.total / (1024**3), 2),
                     "free_gb": round(disk.free / (1024**3), 2),
                     "used_gb": round(disk.used / (1024**3), 2),
-                    "used_percent": round((disk.used / disk.total) * 100, 1)
+                    "used_percent": round((disk.used / disk.total) * 100, 1),
                 },
                 "process": {
                     "memory_rss_mb": round(process_memory.rss / (1024**2), 2),
                     "memory_vms_mb": round(process_memory.vms / (1024**2), 2),
                     "cpu_percent": process.cpu_percent(),
                     "num_threads": process.num_threads(),
-                    "create_time": datetime.fromtimestamp(process.create_time()).isoformat()
+                    "create_time": datetime.fromtimestamp(process.create_time()).isoformat(),
                 },
-                "network": network_stats
-            }
+                "network": network_stats,
+            },
         }
 
         return APIResponse(
-            success=True,
-            data=detailed_metrics,
-            message="System metrics retrieved successfully"
+            success=True, data=detailed_metrics, message="System metrics retrieved successfully"
         )
 
     except Exception as e:
@@ -216,30 +203,24 @@ async def readiness_check():
 
         # Service is ready if core components are healthy
         core_services = ["financial_advisor"]
-        is_ready = all(
-            services_status.get(service) == "healthy"
-            for service in core_services
-        )
+        is_ready = all(services_status.get(service) == "healthy" for service in core_services)
 
         if is_ready:
             return APIResponse(
                 success=True,
                 data={"status": "ready", "services": services_status},
-                message="Service is ready"
+                message="Service is ready",
             )
         else:
             return APIResponse(
                 success=False,
                 data={"status": "not_ready", "services": services_status},
-                message="Service is not ready"
+                message="Service is not ready",
             )
 
     except Exception as e:
         return APIResponse(
-            success=False,
-            data=None,
-            message="Readiness check failed",
-            error={"detail": str(e)}
+            success=False, data=None, message="Readiness check failed", error={"detail": str(e)}
         )
 
 
@@ -259,17 +240,14 @@ async def liveness_check():
             data={
                 "status": "alive" if is_alive else "dead",
                 "uptime_seconds": uptime_seconds,
-                "current_time": current_time.isoformat()
+                "current_time": current_time.isoformat(),
             },
-            message="Liveness check completed"
+            message="Liveness check completed",
         )
 
     except Exception as e:
         return APIResponse(
-            success=False,
-            data=None,
-            message="Liveness check failed",
-            error={"detail": str(e)}
+            success=False, data=None, message="Liveness check failed", error={"detail": str(e)}
         )
 
 
@@ -282,31 +260,37 @@ async def check_dependencies():
         # Check Python packages
         try:
             import pkg_resources
+
             installed_packages = {pkg.key: pkg.version for pkg in pkg_resources.working_set}
 
             required_packages = [
-                "fastapi", "uvicorn", "pydantic", "langchain", "langgraph",
-                "firecrawl-py", "yfinance", "pandas", "numpy", "aiohttp"
+                "fastapi",
+                "uvicorn",
+                "pydantic",
+                "langchain",
+                "langgraph",
+                "yfinance",
+                "pandas",
+                "numpy",
+                "aiohttp",
             ]
 
             for package in required_packages:
                 if package in installed_packages:
                     dependencies[f"python_{package}"] = {
                         "status": "installed",
-                        "version": installed_packages[package]
+                        "version": installed_packages[package],
                     }
                 else:
-                    dependencies[f"python_{package}"] = {
-                        "status": "missing",
-                        "version": None
-                    }
+                    dependencies[f"python_{package}"] = {"status": "missing", "version": None}
 
         except Exception as e:
             dependencies["python_packages"] = {"status": "error", "error": str(e)}
 
         # Check environment variables
         import os
-        env_vars = ["OPENAI_API_KEY", "FIRECRAWL_API_KEY"]
+
+        env_vars = ["OPENAI_API_KEY"]
         for var in env_vars:
             dependencies[f"env_{var.lower()}"] = {
                 "status": "configured" if os.getenv(var) else "missing"
@@ -314,15 +298,10 @@ async def check_dependencies():
 
         # Check external services (simplified)
         dependencies["external_apis"] = {
-            "openai": "configured" if os.getenv("OPENAI_API_KEY") else "not_configured",
-            "firecrawl": "configured" if os.getenv("FIRECRAWL_API_KEY") else "not_configured"
+            "openai": "configured" if os.getenv("OPENAI_API_KEY") else "not_configured"
         }
 
-        return APIResponse(
-            success=True,
-            data=dependencies,
-            message="Dependencies check completed"
-        )
+        return APIResponse(success=True, data=dependencies, message="Dependencies check completed")
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to check dependencies: {str(e)}")
@@ -337,5 +316,5 @@ async def toggle_maintenance_mode():
     return APIResponse(
         success=True,
         data={"maintenance_mode": False, "message": "Maintenance mode not implemented"},
-        message="Maintenance mode toggle completed"
+        message="Maintenance mode toggle completed",
     )

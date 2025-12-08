@@ -1,7 +1,8 @@
 langgraph>=0.2.0
 langchain>=0.3.0
 langchain-openai>=0.2.0
-firecrawl-py>=1.0.0
+ddgs~=9.9
+crawl4ai~=0.7
 mcp>=1.0.0
 requests>=2.31.0
 aiohttp>=3.9.0
