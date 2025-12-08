@@ -1,6 +1,5 @@
-import asyncio
-from typing import Any, Dict, List, Optional
-from datetime import datetime, timedelta
+from typing import Any, Dict, Optional
+from datetime import datetime
 import aiohttp
 import yfinance as yf
 import pandas as pd
@@ -100,10 +99,6 @@ class FinancialAnalysisAgent(BaseAgent):
         try:
             ticker = yf.Ticker(symbol)
             info = ticker.info
-
-            # Get quarterly and annual financials
-            quarterly = ticker.quarterly_financials
-            annual = ticker.financials
 
             financials = CompanyFinancials(
                 symbol=symbol,

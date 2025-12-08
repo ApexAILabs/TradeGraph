@@ -1,3 +1,4 @@
+import json
 from typing import Any, Dict, List, Optional, Tuple
 from datetime import datetime
 import numpy as np
@@ -500,11 +501,9 @@ class TradingRecommendationEngine(BaseAgent):
             response = await self.llm.ainvoke([HumanMessage(content=analysis_prompt)])
 
             try:
-                import json
-
                 factors_data = json.loads(response.content)
                 return factors_data
-            except:
+            except json.JSONDecodeError:
                 # Fallback
                 return {
                     "key_factors": ["Analysis available"],

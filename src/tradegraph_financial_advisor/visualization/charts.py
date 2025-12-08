@@ -1,7 +1,4 @@
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-from typing import List, Dict, Any
-from datetime import datetime
 
 def create_portfolio_allocation_chart(recommendations, output_path="portfolio_allocation.html"):
     

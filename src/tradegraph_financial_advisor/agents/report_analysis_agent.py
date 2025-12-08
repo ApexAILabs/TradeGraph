@@ -171,8 +171,6 @@ class ReportAnalysisAgent(BaseAgent):
             response = await self.llm.ainvoke([HumanMessage(content=analysis_prompt)])
 
             try:
-                import json
-
                 analysis_data = json.loads(response.content)
                 analysis_data["report_type"] = report_type
                 analysis_data["filing_url"] = filing.get("url", "")
@@ -235,8 +233,6 @@ class ReportAnalysisAgent(BaseAgent):
             response = await self.llm.ainvoke([HumanMessage(content=combined_analysis_prompt)])
 
             try:
-                import json
-
                 summary_data = json.loads(response.content)
                 return summary_data
 
@@ -273,8 +269,6 @@ class ReportAnalysisAgent(BaseAgent):
             for query in search_queries[:quarters]:
                 try:
                     # Use web search or specific financial sites
-                    search_url = f"https://www.google.com/search?q={query.replace(' ', '+')}"
-
                     # This would typically use a more sophisticated search
                     # For demo purposes, showing the structure
 

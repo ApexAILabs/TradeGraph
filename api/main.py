@@ -1,13 +1,11 @@
-import asyncio
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 from fastapi import (
     FastAPI,
     HTTPException,
-    BackgroundTasks,
     WebSocket,
     WebSocketDisconnect,
 )

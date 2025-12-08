@@ -1,6 +1,5 @@
-import asyncio
 from typing import Any, Dict, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 import aiohttp
 from bs4 import BeautifulSoup
 from loguru import logger

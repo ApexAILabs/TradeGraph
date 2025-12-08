@@ -184,7 +184,7 @@ class FinancialAdvisor:
 
             # This would typically connect to a real-time data feed
             # For demo purposes, using current analysis
-            results = await self.quick_analysis(symbols, "basic")
+            await self.quick_analysis(symbols, "basic")
 
             alerts = []
             # Extract alerts from analysis (simplified)

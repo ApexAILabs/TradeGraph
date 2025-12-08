@@ -93,7 +93,7 @@ async def test_services() -> Dict[str, str]:
         # Test if we can import and initialize core components
         from tradegraph_financial_advisor import FinancialAdvisor
 
-        advisor = FinancialAdvisor()
+        FinancialAdvisor()
         services["financial_advisor"] = "healthy"
     except Exception:
         services["financial_advisor"] = "unhealthy"

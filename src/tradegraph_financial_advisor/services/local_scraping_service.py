@@ -1,5 +1,4 @@
-import asyncio
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from loguru import logger
 from ddgs import DDGS
 from crawl4ai import AsyncWebCrawler
