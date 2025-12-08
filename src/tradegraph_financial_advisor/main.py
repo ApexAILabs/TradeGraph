@@ -1,15 +1,19 @@
-import asyncio
-import sys
-from typing import List, Dict, Any
-from datetime import datetime
 import argparse
+import asyncio
+import json
+import sys
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 from loguru import logger
 
 from .workflows.analysis_workflow import FinancialAnalysisWorkflow
 from .agents.recommendation_engine import TradingRecommendationEngine
 from .agents.report_analysis_agent import ReportAnalysisAgent
 from .config.settings import settings
+from .services.db_manager import db_manager
 from .utils.helpers import save_analysis_results
+from .utils.symbols import resolve_symbol
 from .visualization import charts
 
 
@@ -49,6 +53,15 @@ class FinancialAdvisor:
             if portfolio_size is None:
                 portfolio_size = settings.default_portfolio_size
 
+            symbol_mappings: Dict[str, Dict[str, str]] = {}
+            asset_mix = {"equity": 0, "crypto": 0}
+            base_symbols: List[str] = []
+            for symbol in symbols:
+                resolution = resolve_symbol(symbol)
+                symbol_mappings[symbol] = resolution
+                asset_mix[resolution["asset_type"]] += 1
+                base_symbols.append(resolution["base_symbol"])
+
             # Step 1: Run the main workflow
             workflow_results = await self.workflow.analyze_portfolio(
                 symbols=symbols,
@@ -59,6 +72,10 @@ class FinancialAdvisor:
 
             portfolio_recommendation = workflow_results.get("portfolio_recommendation")
             sentiment_analysis = workflow_results.get("sentiment_analysis", {})
+            news_data = workflow_results.get("news_data", {})
+            financial_data = workflow_results.get("financial_data", {})
+            recommendations = workflow_results.get("recommendations", [])
+            analysis_context = workflow_results.get("analysis_context", {})
 
             # Step 2: Enhance with detailed report analysis if requested
             report_analyses = {}
@@ -80,18 +97,22 @@ class FinancialAdvisor:
                 except Exception as e:
                     logger.warning(f"Report analysis failed: {str(e)}")
 
-            # Step 3: Generate final recommendations
-            analysis_contexts = {}
-            for symbol in symbols:
-                analysis_contexts[symbol] = {
-                    "symbol": symbol,
-                    "report_analysis": report_analyses.get(symbol, {}),
-                    "portfolio_context": {
-                        "portfolio_size": portfolio_size,
-                        "risk_tolerance": risk_tolerance,
-                        "time_horizon": time_horizon,
-                    },
-                }
+            # Step 3: Gather database-backed insights
+            stored_price_history: Dict[str, Any] = {}
+            for symbol, resolution in symbol_mappings.items():
+                history = db_manager.get_stock_history(resolution["resolved_symbol"])
+                if history:
+                    stored_price_history[symbol] = history
+
+            knowledge_graph_articles = db_manager.get_recent_articles(base_symbols, limit=15)
+            recent_queries = db_manager.get_recent_queries(limit=5)
+
+            advisor_report = self._build_advisor_report(
+                recommendations=recommendations,
+                sentiment_analysis=sentiment_analysis,
+                portfolio=portfolio_recommendation,
+                news_data=news_data,
+            )
 
             # Combine all results
             final_results = {
@@ -101,12 +122,24 @@ class FinancialAdvisor:
                     "risk_tolerance": risk_tolerance,
                     "time_horizon": time_horizon,
                     "analysis_timestamp": datetime.now().isoformat(),
+                    "asset_breakdown": asset_mix,
+                    "symbol_metadata": symbol_mappings,
                 },
                 "portfolio_recommendation": (
                     portfolio_recommendation if portfolio_recommendation else None
                 ),
                 "sentiment_analysis": sentiment_analysis,
                 "detailed_reports": report_analyses,
+                "news_data": news_data,
+                "financial_data": financial_data,
+                "recommendations": recommendations,
+                "analysis_context": analysis_context,
+                "database_insights": {
+                    "price_history": stored_price_history,
+                    "knowledge_graph_articles": knowledge_graph_articles,
+                    "recent_queries": recent_queries,
+                },
+                "advisor_report": advisor_report,
                 "analysis_metadata": {
                     "workflow_version": "1.0.0",
                     "agents_used": [
@@ -118,6 +151,30 @@ class FinancialAdvisor:
                     "total_analysis_time": "calculated_at_runtime",
                 },
             }
+
+            try:
+                summary_payload = json.dumps(
+                    {
+                        "symbols": symbols,
+                        "risk": portfolio_recommendation.get("overall_risk_level")
+                        if portfolio_recommendation
+                        else None,
+                        "recommendations": [
+                            {
+                                "symbol": rec.get("symbol"),
+                                "action": rec.get("recommendation"),
+                                "confidence": rec.get("confidence_score"),
+                            }
+                            for rec in recommendations
+                        ],
+                    }
+                )
+                db_manager.log_query(
+                    query_text=", ".join(symbols),
+                    response_summary=summary_payload[:4000],
+                )
+            except Exception as logging_error:
+                logger.warning(f"Failed to log query in DuckDB: {logging_error}")
 
             logger.info("Comprehensive analysis completed successfully")
             return final_results
@@ -210,6 +267,115 @@ class FinancialAdvisor:
         except Exception as e:
             logger.error(f"Alert generation failed: {str(e)}")
             return []
+
+    def _build_advisor_report(
+        self,
+        recommendations: List[Dict[str, Any]],
+        sentiment_analysis: Dict[str, Any],
+        portfolio: Optional[Dict[str, Any]],
+        news_data: Dict[str, Any],
+    ) -> Optional[Dict[str, Any]]:
+        if not recommendations:
+            return None
+
+        buy_set = {"buy", "strong_buy"}
+        sell_set = {"sell", "strong_sell"}
+        buy_count = sum(
+            1 for rec in recommendations if rec.get("recommendation") in buy_set
+        )
+        sell_count = sum(
+            1 for rec in recommendations if rec.get("recommendation") in sell_set
+        )
+        hold_count = len(recommendations) - buy_count - sell_count
+
+        if buy_count > sell_count and buy_count >= hold_count:
+            stance = "bullish"
+        elif sell_count > buy_count:
+            stance = "defensive"
+        else:
+            stance = "balanced"
+
+        risk_mapping = {"low": 0.25, "medium": 0.5, "high": 0.75, "very_high": 0.9}
+        avg_risk = 0.0
+        if recommendations:
+            avg_risk = sum(
+                risk_mapping.get(rec.get("risk_level", "medium"), 0.5)
+                for rec in recommendations
+            ) / len(recommendations)
+
+        if avg_risk < 0.35:
+            risk_label = "low"
+        elif avg_risk < 0.6:
+            risk_label = "medium"
+        else:
+            risk_label = "high"
+
+        positions = []
+        for rec in recommendations:
+            notes = rec.get("analyst_notes") or "; ".join(rec.get("key_factors", [])[:3])
+            positions.append(
+                {
+                    "symbol": rec.get("symbol"),
+                    "action": rec.get("recommendation", "").upper(),
+                    "confidence": rec.get("confidence_score"),
+                    "allocation": rec.get("recommended_allocation"),
+                    "target_price": rec.get("target_price"),
+                    "stop_loss": rec.get("stop_loss"),
+                    "risk": rec.get("risk_level"),
+                    "should_buy": rec.get("recommendation") in buy_set,
+                    "notes": notes,
+                    "catalysts": rec.get("catalysts", [])[:3],
+                }
+            )
+
+        sentiment_sections = []
+        for symbol, summary in sentiment_analysis.items():
+            sentiment_sections.append(
+                {
+                    "symbol": symbol,
+                    "label": summary.get("sentiment_label", "neutral"),
+                    "score": summary.get("sentiment_score"),
+                    "confidence": summary.get("confidence"),
+                    "news_summary": summary.get("news_summary"),
+                    "article_count": summary.get("article_count", 0),
+                }
+            )
+
+        articles = (news_data or {}).get("articles", [])
+        news_highlights = []
+        for article in articles[:5]:
+            news_highlights.append(
+                {
+                    "title": article.get("title"),
+                    "source": article.get("source"),
+                    "sentiment": article.get("sentiment"),
+                    "impact_score": article.get("impact_score"),
+                    "url": article.get("url"),
+                }
+            )
+
+        summary = (
+            f"{len(recommendations)} positions analyzed. "
+            f"Bias: {stance.upper()} | Portfolio risk: {risk_label.upper()}"
+        )
+        if portfolio:
+            expected_return = portfolio.get("expected_return")
+            if isinstance(expected_return, (int, float)):
+                summary += f" | Expected return {expected_return:.1%}"
+
+        return {
+            "stance": stance,
+            "summary": summary,
+            "positions": positions,
+            "risk_summary": {
+                "portfolio": portfolio.get("overall_risk_level") if portfolio else None,
+                "position_risk": risk_label,
+                "buy_signals": buy_count,
+                "sell_signals": sell_count,
+            },
+            "sentiment_overview": sentiment_sections,
+            "news_highlights": news_highlights,
+        }
 
     def print_recommendations(self, results: Dict[str, Any]) -> None:
         """

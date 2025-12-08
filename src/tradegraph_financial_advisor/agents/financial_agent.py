@@ -8,6 +8,8 @@ from loguru import logger
 from .base_agent import BaseAgent
 from ..models.financial_data import CompanyFinancials, MarketData, TechnicalIndicators
 from ..config.settings import settings
+from ..services.db_manager import db_manager
+from ..utils.symbols import resolve_symbol
 
 
 class FinancialAnalysisAgent(BaseAgent):
@@ -42,22 +44,31 @@ class FinancialAnalysisAgent(BaseAgent):
 
         for symbol in symbols:
             try:
-                symbol_data = {}
+                resolution = resolve_symbol(symbol)
+                resolved_symbol = resolution["resolved_symbol"]
+                symbol_data = {
+                    "metadata": {
+                        "requested_symbol": symbol,
+                        "resolved_symbol": resolved_symbol,
+                        "asset_type": resolution["asset_type"],
+                        "base_symbol": resolution["base_symbol"],
+                    }
+                }
 
                 if include_market_data:
-                    market_data = await self._get_market_data(symbol)
+                    market_data = await self._get_market_data(resolved_symbol)
                     symbol_data["market_data"] = (
                         market_data.dict() if market_data else None
                     )
 
                 if include_financials:
-                    financials = await self._get_company_financials(symbol)
+                    financials = await self._get_company_financials(resolved_symbol)
                     symbol_data["financials"] = (
                         financials.dict() if financials else None
                     )
 
                 if include_technical:
-                    technical = await self._get_technical_indicators(symbol)
+                    technical = await self._get_technical_indicators(resolved_symbol)
                     symbol_data["technical_indicators"] = (
                         technical.dict() if technical else None
                     )
@@ -76,11 +87,25 @@ class FinancialAnalysisAgent(BaseAgent):
     async def _get_market_data(self, symbol: str) -> Optional[MarketData]:
         try:
             ticker = yf.Ticker(symbol)
-            info = ticker.info
-            history = ticker.history(period="1d")
+            info = ticker.info or {}
+            # Fetch more history for DB storage, even if we only use latest for analysis
+            history = ticker.history(period="1mo") 
 
             if history.empty:
                 return None
+            
+            # Store history in DuckDB
+            data_to_store = []
+            for index, row in history.iterrows():
+                data_to_store.append({
+                    'date': index.to_pydatetime(),
+                    'open': row['Open'],
+                    'high': row['High'],
+                    'low': row['Low'],
+                    'close': row['Close'],
+                    'volume': row['Volume']
+                })
+            db_manager.store_stock_data(symbol, data_to_store)
 
             latest = history.iloc[-1]
 
@@ -106,11 +131,13 @@ class FinancialAnalysisAgent(BaseAgent):
     async def _get_company_financials(self, symbol: str) -> Optional[CompanyFinancials]:
         try:
             ticker = yf.Ticker(symbol)
-            info = ticker.info
+            info = ticker.info or {}
 
             financials = CompanyFinancials(
                 symbol=symbol,
-                company_name=info.get("longName", symbol),
+                company_name=info.get("longName")
+                or info.get("shortName")
+                or symbol,
                 market_cap=info.get("marketCap"),
                 pe_ratio=info.get("trailingPE"),
                 eps=info.get("trailingEps"),

@@ -79,7 +79,23 @@ NEWS_SOURCES=bloomberg,reuters,yahoo-finance,marketwatch,cnbc
 DEFAULT_PORTFOLIO_SIZE=100000
 ```
 
-## 🎯 Quick Start
+## Database Setup
+
+### DuckDB
+DuckDB is used for storing local financial data and user queries. It runs in-process, so no separate server installation is required. The database file will be created at `tradegraph.duckdb` by default.
+
+### Neo4j & Graphiti
+Neo4j is used for the Knowledge Graph.
+1. Install Neo4j Community Edition (or use a Docker container or AuraDB).
+2. Set the following environment variables in your `.env` file:
+   ```bash
+   NEO4J_URI=bolt://localhost:7687
+   NEO4J_USER=neo4j
+   NEO4J_PASSWORD=your_password
+   ```
+3. Graphiti (Python library) is used to ingest temporally-aware data into Neo4j.
+
+## Usage
 
 ### Command Line Usage
 

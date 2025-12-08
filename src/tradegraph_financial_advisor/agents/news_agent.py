@@ -8,6 +8,7 @@ from .base_agent import BaseAgent
 from ..models.financial_data import NewsArticle, SentimentType
 from ..config.settings import settings
 from ..utils.helpers import generate_summary
+from ..services.db_manager import db_manager
 
 
 class NewsReaderAgent(BaseAgent):
@@ -306,6 +307,9 @@ class NewsReaderAgent(BaseAgent):
 
                 if not article.summary:
                     article.summary = generate_summary(article.content or article.title)
+                
+                # Ingest into Knowledge Graph
+                db_manager.ingest_news_article(article.dict())
 
                 analyzed_articles.append(article)
 

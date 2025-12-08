@@ -11,15 +11,16 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 
-from .routers import analysis, portfolio, alerts, health
+from .routers import analysis, portfolio, alerts, health, graph
 from .middleware.rate_limiter import RateLimitMiddleware
 from .middleware.logging import LoggingMiddleware
 from .models import APIResponse
 from .websocket_manager import WebSocketManager
+from tradegraph_financial_advisor.services.db_manager import db_manager
 
 # Configure logging
 logging.basicConfig(
@@ -40,11 +41,18 @@ async def lifespan(app: FastAPI):
     # Startup tasks
     try:
         # Initialize any required services
+        # DBManager is initialized on import/first use, but we can verify here
+        if db_manager.duckdb_conn:
+            logger.info("✅ DuckDB connection active")
+        if db_manager.neo4j_driver:
+            logger.info("✅ Neo4j connection active")
+
         logger.info("✅ API services initialized")
         yield
     finally:
         # Cleanup tasks
         logger.info("🔄 API shutting down...")
+        db_manager.close()
         await websocket_manager.disconnect_all()
         logger.info("✅ API shutdown complete")
 
@@ -108,6 +116,7 @@ app.include_router(health.router, prefix="/health", tags=["Health"])
 app.include_router(analysis.router, prefix="/analysis", tags=["Analysis"])
 app.include_router(portfolio.router, prefix="/portfolio", tags=["Portfolio"])
 app.include_router(alerts.router, prefix="/alerts", tags=["Alerts"])
+app.include_router(graph.router, prefix="/graph", tags=["Knowledge Graph"])
 
 # Mount static files for frontend
 try:
@@ -228,7 +237,7 @@ async def api_info():
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
     """Handle HTTP exceptions."""
-    return APIResponse(
+    payload = APIResponse(
         success=False,
         data=None,
         message=exc.detail,
@@ -238,18 +247,20 @@ async def http_exception_handler(request, exc):
             "detail": exc.detail,
         },
     )
+    return JSONResponse(status_code=exc.status_code, content=payload.dict())
 
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request, exc):
     """Handle general exceptions."""
     logger.error(f"Unhandled exception: {str(exc)}", exc_info=True)
-    return APIResponse(
+    payload = APIResponse(
         success=False,
         data=None,
         message="Internal server error",
         error={"type": "InternalServerError", "detail": "An unexpected error occurred"},
     )
+    return JSONResponse(status_code=500, content=payload.dict())
 
 
 # Background task management

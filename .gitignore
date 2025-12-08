@@ -76,3 +76,5 @@ mypy-report/
 .claude/
 
 results/
+.tradegraph.duckdb
+tradegraph.duckdb
