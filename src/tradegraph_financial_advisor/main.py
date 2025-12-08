@@ -1,6 +1,6 @@
 import asyncio
 import sys
-from typing import List, Optional, Dict, Any
+from typing import List, Dict, Any
 from datetime import datetime
 import argparse
 from loguru import logger
@@ -9,16 +9,16 @@ from .workflows.analysis_workflow import FinancialAnalysisWorkflow
 from .agents.recommendation_engine import TradingRecommendationEngine
 from .agents.report_analysis_agent import ReportAnalysisAgent
 from .config.settings import settings
-from .models.recommendations import PortfolioRecommendation
 from .utils.helpers import save_analysis_results
 from .visualization import charts
 
 
 class FinancialAdvisor:
-    def __init__(self):
-        self.workflow = FinancialAnalysisWorkflow()
-        self.recommendation_engine = TradingRecommendationEngine()
-        self.report_analyzer = ReportAnalysisAgent()
+    def __init__(self, llm_model_name: str = "gpt-5-nano"):
+        self.llm_model_name = llm_model_name
+        self.workflow = FinancialAnalysisWorkflow(llm_model_name=self.llm_model_name)
+        self.recommendation_engine = TradingRecommendationEngine(model_name=self.llm_model_name)
+        self.report_analyzer = ReportAnalysisAgent(llm_model_name=self.llm_model_name)
 
     async def analyze_portfolio(
         self,
@@ -26,7 +26,7 @@ class FinancialAdvisor:
         portfolio_size: float = None,
         risk_tolerance: str = "medium",
         time_horizon: str = "medium_term",
-        include_reports: bool = True
+        include_reports: bool = True,
     ) -> Dict[str, Any]:
         """
         Perform comprehensive portfolio analysis and generate recommendations.
@@ -52,7 +52,7 @@ class FinancialAdvisor:
                 symbols=symbols,
                 portfolio_size=portfolio_size,
                 risk_tolerance=risk_tolerance,
-                time_horizon=time_horizon
+                time_horizon=time_horizon,
             )
 
             portfolio_recommendation = workflow_results.get("portfolio_recommendation")
@@ -67,7 +67,7 @@ class FinancialAdvisor:
                     report_input = {
                         "symbols": symbols,
                         "report_types": ["10-K", "10-Q"],
-                        "analysis_depth": "detailed"
+                        "analysis_depth": "detailed",
                     }
 
                     report_result = await self.report_analyzer.execute(report_input)
@@ -87,8 +87,8 @@ class FinancialAdvisor:
                     "portfolio_context": {
                         "portfolio_size": portfolio_size,
                         "risk_tolerance": risk_tolerance,
-                        "time_horizon": time_horizon
-                    }
+                        "time_horizon": time_horizon,
+                    },
                 }
 
             # Combine all results
@@ -98,17 +98,23 @@ class FinancialAdvisor:
                     "portfolio_size": portfolio_size,
                     "risk_tolerance": risk_tolerance,
                     "time_horizon": time_horizon,
-                    "analysis_timestamp": datetime.now().isoformat()
+                    "analysis_timestamp": datetime.now().isoformat(),
                 },
-                "portfolio_recommendation": portfolio_recommendation if portfolio_recommendation else None,
+                "portfolio_recommendation": (
+                    portfolio_recommendation if portfolio_recommendation else None
+                ),
                 "sentiment_analysis": sentiment_analysis,
                 "detailed_reports": report_analyses,
                 "analysis_metadata": {
                     "workflow_version": "1.0.0",
-                    "agents_used": ["NewsReaderAgent", "FinancialAnalysisAgent", "ReportAnalysisAgent"],
+                    "agents_used": [
+                        "NewsReaderAgent",
+                        "FinancialAnalysisAgent",
+                        "ReportAnalysisAgent",
+                    ],
                     "data_sources": settings.news_sources,
-                    "total_analysis_time": "calculated_at_runtime"
-                }
+                    "total_analysis_time": "calculated_at_runtime",
+                },
             }
 
             logger.info("Comprehensive analysis completed successfully")
@@ -119,9 +125,7 @@ class FinancialAdvisor:
             raise
 
     async def quick_analysis(
-        self,
-        symbols: List[str],
-        analysis_type: str = "standard"
+        self, symbols: List[str], analysis_type: str = "standard"
     ) -> Dict[str, Any]:
         """
         Perform quick analysis without full report scraping.
@@ -141,27 +145,25 @@ class FinancialAdvisor:
                 portfolio_rec = await self.workflow.analyze_portfolio(
                     symbols=symbols,
                     portfolio_size=50000,  # Default smaller size for quick analysis
-                    risk_tolerance="medium"
+                    risk_tolerance="medium",
                 )
 
                 return {
                     "analysis_type": "basic",
                     "symbols": symbols,
-                    "recommendations": [rec.dict() for rec in portfolio_rec.recommendations] if portfolio_rec else [],
-                    "analysis_timestamp": datetime.now().isoformat()
+                    "recommendations": (
+                        [rec.dict() for rec in portfolio_rec.recommendations]
+                        if portfolio_rec
+                        else []
+                    ),
+                    "analysis_timestamp": datetime.now().isoformat(),
                 }
 
             elif analysis_type == "standard":
-                return await self.analyze_portfolio(
-                    symbols=symbols,
-                    include_reports=False
-                )
+                return await self.analyze_portfolio(symbols=symbols, include_reports=False)
 
             else:  # detailed
-                return await self.analyze_portfolio(
-                    symbols=symbols,
-                    include_reports=True
-                )
+                return await self.analyze_portfolio(symbols=symbols, include_reports=True)
 
         except Exception as e:
             logger.error(f"Quick analysis failed: {str(e)}")
@@ -187,13 +189,15 @@ class FinancialAdvisor:
             alerts = []
             # Extract alerts from analysis (simplified)
             for symbol in symbols:
-                alerts.append({
-                    "symbol": symbol,
-                    "alert_type": "analysis_available",
-                    "message": f"Analysis completed for {symbol}",
-                    "timestamp": datetime.now().isoformat(),
-                    "urgency": "low"
-                })
+                alerts.append(
+                    {
+                        "symbol": symbol,
+                        "alert_type": "analysis_available",
+                        "message": f"Analysis completed for {symbol}",
+                        "timestamp": datetime.now().isoformat(),
+                        "urgency": "low",
+                    }
+                )
 
             return alerts
 
@@ -205,9 +209,9 @@ class FinancialAdvisor:
         """
         Pretty print analysis results to console.
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TRADEGRAPH FINANCIAL ADVISOR - ANALYSIS RESULTS")
-        print("="*80)
+        print("=" * 80)
 
         # Analysis Summary
         summary = results.get("analysis_summary", {})
@@ -219,7 +223,7 @@ class FinancialAdvisor:
         # Portfolio Recommendation
         portfolio = results.get("portfolio_recommendation")
         if portfolio:
-            print(f"\n📊 PORTFOLIO RECOMMENDATION")
+            print("\n📊 PORTFOLIO RECOMMENDATION")
             print(f"Overall Confidence: {portfolio.get('total_confidence', 0):.1%}")
             print(f"Diversification Score: {portfolio.get('diversification_score', 0):.1%}")
             print(f"Risk Level: {portfolio.get('overall_risk_level', 'Unknown')}")
@@ -238,8 +242,14 @@ class FinancialAdvisor:
                     current = rec.get("current_price", 0)
 
                     print(f"\n{symbol}: {recommendation} (Confidence: {confidence:.1%})")
-                    print(f"  Current: ${current:.2f} | Target: ${target:.2f}" if target else f"  Current: ${current:.2f}")
-                    print(f"  Allocation: {allocation:.1%} | Risk: {rec.get('risk_level', 'Unknown')}")
+                    print(
+                        f"  Current: ${current:.2f} | Target: ${target:.2f}"
+                        if target
+                        else f"  Current: ${current:.2f}"
+                    )
+                    print(
+                        f"  Allocation: {allocation:.1%} | Risk: {rec.get('risk_level', 'Unknown')}"
+                    )
 
                     factors = rec.get("key_factors", [])
                     if factors:
@@ -248,7 +258,7 @@ class FinancialAdvisor:
         # Detailed Reports Summary
         reports = results.get("detailed_reports", {})
         if reports:
-            print(f"\n📋 DETAILED REPORT ANALYSIS")
+            print("\n📋 DETAILED REPORT ANALYSIS")
             print("-" * 40)
 
             for symbol, report in reports.items():
@@ -260,7 +270,7 @@ class FinancialAdvisor:
                     if summary_text:
                         print(f"  Summary: {summary_text[:100]}...")
 
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
 
 
 async def main():
@@ -271,45 +281,36 @@ async def main():
         description="TradeGraph Financial Advisor - AI-powered investment analysis"
     )
     parser.add_argument(
-        "symbols",
-        nargs="+",
-        help="Stock symbols to analyze (e.g., AAPL MSFT GOOGL)"
+        "symbols", nargs="+", help="Stock symbols to analyze (e.g., AAPL MSFT GOOGL)"
     )
     parser.add_argument(
         "--portfolio-size",
         type=float,
         default=None,
-        help="Portfolio size in dollars (default: from config)"
+        help="Portfolio size in dollars (default: from config)",
     )
     parser.add_argument(
         "--risk-tolerance",
         choices=["conservative", "medium", "aggressive"],
         default="medium",
-        help="Risk tolerance level"
+        help="Risk tolerance level",
     )
     parser.add_argument(
         "--time-horizon",
         choices=["short_term", "medium_term", "long_term"],
         default="medium_term",
-        help="Investment time horizon"
+        help="Investment time horizon",
     )
     parser.add_argument(
         "--analysis-type",
         choices=["quick", "standard", "comprehensive"],
         default="standard",
-        help="Analysis depth"
+        help="Analysis depth",
     )
     parser.add_argument(
-        "--output-format",
-        choices=["console", "json"],
-        default="console",
-        help="Output format"
+        "--output-format", choices=["console", "json"], default="console", help="Output format"
     )
-    parser.add_argument(
-        "--alerts-only",
-        action="store_true",
-        help="Generate alerts only"
-    )
+    parser.add_argument("--alerts-only", action="store_true", help="Generate alerts only")
 
     args = parser.parse_args()
 
@@ -318,7 +319,7 @@ async def main():
     logger.add(
         sys.stderr,
         level=settings.log_level,
-        format="<green>{time}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
+        format="<green>{time}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
     )
 
     try:
@@ -335,9 +336,9 @@ async def main():
                     "analysis_summary": {
                         "symbols_analyzed": args.symbols,
                         "analysis_type": "alerts_only",
-                        "analysis_timestamp": datetime.now().isoformat()
+                        "analysis_timestamp": datetime.now().isoformat(),
                     },
-                    "alerts": alerts
+                    "alerts": alerts,
                 }
                 filepath = save_analysis_results(alerts_results)
                 logger.info(f"Alerts results automatically saved to: {filepath}")
@@ -346,6 +347,7 @@ async def main():
 
             if args.output_format == "json":
                 import json
+
                 print(json.dumps(alerts, indent=2))
             else:
                 print("\n🚨 CURRENT ALERTS:")
@@ -362,7 +364,7 @@ async def main():
                     portfolio_size=args.portfolio_size,
                     risk_tolerance=args.risk_tolerance,
                     time_horizon=args.time_horizon,
-                    include_reports=True
+                    include_reports=True,
                 )
             else:  # standard
                 results = await advisor.analyze_portfolio(
@@ -370,7 +372,7 @@ async def main():
                     portfolio_size=args.portfolio_size,
                     risk_tolerance=args.risk_tolerance,
                     time_horizon=args.time_horizon,
-                    include_reports=False
+                    include_reports=False,
                 )
 
             # Always save results to JSON file with timestamp
@@ -379,29 +381,30 @@ async def main():
                 logger.info(f"Analysis results automatically saved to: {filepath}")
             except Exception as e:
                 logger.warning(f"Failed to save results file: {str(e)}")
-                
+
             # Generate portfolio allocation chart
             try:
-                portfolio_rec = results.get('portfolio_recommendation')
-                
-                if portfolio_rec and portfolio_rec.get('recommendations'):
-                    recommendations = portfolio_rec.get('recommendations', [])
-                    
+                portfolio_rec = results.get("portfolio_recommendation")
+
+                if portfolio_rec and portfolio_rec.get("recommendations"):
+                    recommendations = portfolio_rec.get("recommendations", [])
+
                     chart_path = charts.create_portfolio_allocation_chart(
                         recommendations=recommendations,
-                        output_path="results/portfolio_allocation.html"
+                        output_path="results/portfolio_allocation.html",
                     )
-                    
+
                     logger.info(f"Portfolio allocation chart saved to: {chart_path}")
                 else:
                     logger.warning("No recommendations found to create allocation chart")
-                    
+
             except Exception as e:
                 logger.warning(f"Failed to generate portfolio allocation chart: {str(e)}")
 
             # Display results based on output format
             if args.output_format == "json":
                 import json
+
                 print(json.dumps(results, indent=2, default=str))
             else:
                 advisor.print_recommendations(results)

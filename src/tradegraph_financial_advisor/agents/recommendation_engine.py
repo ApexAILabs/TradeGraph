@@ -1,36 +1,32 @@
-import asyncio
-import json
 from typing import Any, Dict, List, Optional, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime
 import numpy as np
 from loguru import logger
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 
 from .base_agent import BaseAgent
-from ..models.financial_data import AnalysisContext
 from ..models.recommendations import (
     TradingRecommendation,
     PortfolioRecommendation,
     RecommendationType,
     RiskLevel,
     TimeHorizon,
-    AlertRecommendation
+    AlertRecommendation,
 )
 from ..config.settings import settings
 
 
 class TradingRecommendationEngine(BaseAgent):
-    def __init__(self, **kwargs):
+    def __init__(self, model_name: str = "gpt-5-nano", **kwargs):
         super().__init__(
             name="TradingRecommendationEngine",
             description="Generates sophisticated trading recommendations using multi-factor analysis",
-            **kwargs
+            **kwargs,
         )
+        self.model_name = model_name
         self.llm = ChatOpenAI(
-            model="gpt-4",
-            temperature=0.1,
-            api_key=settings.openai_api_key
+            model=self.model_name, temperature=0.1, api_key=settings.openai_api_key
         )
 
     async def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -66,16 +62,15 @@ class TradingRecommendationEngine(BaseAgent):
 
         return {
             "individual_recommendations": [rec.dict() for rec in recommendations],
-            "portfolio_recommendation": portfolio_recommendation.dict() if portfolio_recommendation else None,
+            "portfolio_recommendation": (
+                portfolio_recommendation.dict() if portfolio_recommendation else None
+            ),
             "alerts": [alert.dict() for alert in alerts],
-            "generation_timestamp": datetime.now().isoformat()
+            "generation_timestamp": datetime.now().isoformat(),
         }
 
     async def _generate_stock_recommendation(
-        self,
-        symbol: str,
-        context: Dict[str, Any],
-        risk_preferences: Dict[str, Any]
+        self, symbol: str, context: Dict[str, Any], risk_preferences: Dict[str, Any]
     ) -> Optional[TradingRecommendation]:
         try:
             # Extract data from context
@@ -93,9 +88,9 @@ class TradingRecommendationEngine(BaseAgent):
             # Overall confidence score (weighted combination)
             weights = {"fundamental": 0.4, "technical": 0.3, "sentiment": 0.3}
             confidence_score = (
-                weights["fundamental"] * fundamental_score +
-                weights["technical"] * technical_score +
-                weights["sentiment"] * sentiment_score
+                weights["fundamental"] * fundamental_score
+                + weights["technical"] * technical_score
+                + weights["sentiment"] * sentiment_score
             )
 
             # Determine recommendation type
@@ -150,7 +145,7 @@ class TradingRecommendationEngine(BaseAgent):
                 sector=financials.get("sector", "Unknown"),
                 expected_return=await self._calculate_expected_return(
                     current_price, target_price, recommendation_type
-                )
+                ),
             )
 
             return recommendation
@@ -160,9 +155,7 @@ class TradingRecommendationEngine(BaseAgent):
             return None
 
     async def _calculate_fundamental_score(
-        self,
-        financials: Dict[str, Any],
-        report_analysis: Dict[str, Any]
+        self, financials: Dict[str, Any], report_analysis: Dict[str, Any]
     ) -> float:
         try:
             score = 0.5  # Base score
@@ -212,9 +205,7 @@ class TradingRecommendationEngine(BaseAgent):
             return 0.5
 
     async def _calculate_technical_score(
-        self,
-        technical_data: Dict[str, Any],
-        market_data: Dict[str, Any]
+        self, technical_data: Dict[str, Any], market_data: Dict[str, Any]
     ) -> float:
         try:
             score = 0.5  # Base score
@@ -229,11 +220,11 @@ class TradingRecommendationEngine(BaseAgent):
                 if current_price > sma_20 > sma_50:
                     score += 0.15  # Strong uptrend
                 elif current_price > sma_20:
-                    score += 0.1   # Uptrend
+                    score += 0.1  # Uptrend
                 elif current_price < sma_20 < sma_50:
                     score -= 0.15  # Strong downtrend
                 elif current_price < sma_20:
-                    score -= 0.1   # Downtrend
+                    score -= 0.1  # Downtrend
 
             # RSI analysis
             rsi = technical_data.get("rsi")
@@ -301,7 +292,7 @@ class TradingRecommendationEngine(BaseAgent):
         confidence_score: float,
         fundamental_score: float,
         technical_score: float,
-        sentiment_score: float
+        sentiment_score: float,
     ) -> RecommendationType:
         if confidence_score >= 0.8:
             return RecommendationType.STRONG_BUY
@@ -321,7 +312,7 @@ class TradingRecommendationEngine(BaseAgent):
         market_data: Dict[str, Any],
         financials: Dict[str, Any],
         technical_data: Dict[str, Any],
-        report_analysis: Dict[str, Any]
+        report_analysis: Dict[str, Any],
     ) -> RiskLevel:
         risk_score = 0.0
 
@@ -369,7 +360,7 @@ class TradingRecommendationEngine(BaseAgent):
         self,
         recommendation_type: RecommendationType,
         risk_level: RiskLevel,
-        technical_data: Dict[str, Any]
+        technical_data: Dict[str, Any],
     ) -> TimeHorizon:
         # Technical momentum suggests shorter term
         rsi = technical_data.get("rsi", 50)
@@ -391,17 +382,17 @@ class TradingRecommendationEngine(BaseAgent):
         confidence_score: float,
         risk_level: RiskLevel,
         risk_preferences: Dict[str, Any],
-        recommendation_type: RecommendationType
+        recommendation_type: RecommendationType,
     ) -> float:
-        
+
         RECOMMENDATION_WEIGHTS = {
             RecommendationType.STRONG_BUY: 2.0,
             RecommendationType.BUY: 1.5,
             RecommendationType.HOLD: 0.8,
             RecommendationType.SELL: 0.3,
-            RecommendationType.STRONG_SELL: 0.1
+            RecommendationType.STRONG_SELL: 0.1,
         }
-        
+
         base_allocation = confidence_score * RECOMMENDATION_WEIGHTS[recommendation_type]
 
         # Adjust for risk level
@@ -409,22 +400,20 @@ class TradingRecommendationEngine(BaseAgent):
             RiskLevel.LOW: 1.5,
             RiskLevel.MEDIUM: 1.0,
             RiskLevel.HIGH: 0.7,
-            RiskLevel.VERY_HIGH: 0.4
+            RiskLevel.VERY_HIGH: 0.4,
         }
 
         risk_adjusted = base_allocation * risk_multipliers[risk_level]
 
         # Adjust for user risk tolerance
         risk_tolerance = risk_preferences.get("risk_tolerance", "medium")
-        tolerance_multipliers = {
-            "conservative": 0.6,
-            "medium": 1.0,
-            "aggressive": 1.4
-        }
+        tolerance_multipliers = {"conservative": 0.6, "medium": 1.0, "aggressive": 1.4}
 
         final_allocation = risk_adjusted * tolerance_multipliers.get(risk_tolerance, 1.0)
 
-        return max(0.01, final_allocation)  # was Between 1% and 25% - changed for the new optimization logic
+        return max(
+            0.01, final_allocation
+        )  # was Between 1% and 25% - changed for the new optimization logic
 
     async def _calculate_price_targets(
         self,
@@ -432,7 +421,7 @@ class TradingRecommendationEngine(BaseAgent):
         current_price: float,
         recommendation_type: RecommendationType,
         technical_data: Dict[str, Any],
-        financials: Dict[str, Any]
+        financials: Dict[str, Any],
     ) -> Tuple[Optional[float], Optional[float]]:
         try:
             target_price = None
@@ -488,7 +477,7 @@ class TradingRecommendationEngine(BaseAgent):
         financials: Dict[str, Any],
         technical_data: Dict[str, Any],
         sentiment_data: Dict[str, Any],
-        report_analysis: Dict[str, Any]
+        report_analysis: Dict[str, Any],
     ) -> Dict[str, List[str]]:
         try:
             analysis_prompt = f"""
@@ -512,6 +501,7 @@ class TradingRecommendationEngine(BaseAgent):
 
             try:
                 import json
+
                 factors_data = json.loads(response.content)
                 return factors_data
             except:
@@ -520,7 +510,7 @@ class TradingRecommendationEngine(BaseAgent):
                     "key_factors": ["Analysis available"],
                     "risks": ["Market volatility"],
                     "catalysts": ["Market sentiment"],
-                    "analyst_notes": "Comprehensive analysis completed"
+                    "analyst_notes": "Comprehensive analysis completed",
                 }
 
         except Exception as e:
@@ -529,14 +519,14 @@ class TradingRecommendationEngine(BaseAgent):
                 "key_factors": ["Analysis available"],
                 "risks": ["Market volatility"],
                 "catalysts": ["Market sentiment"],
-                "analyst_notes": "Analysis completed with limitations"
+                "analyst_notes": "Analysis completed with limitations",
             }
 
     async def _calculate_expected_return(
         self,
         current_price: float,
         target_price: Optional[float],
-        recommendation_type: RecommendationType
+        recommendation_type: RecommendationType,
     ) -> Optional[float]:
         if not target_price:
             return None
@@ -552,21 +542,21 @@ class TradingRecommendationEngine(BaseAgent):
         self,
         recommendations: List[TradingRecommendation],
         portfolio_constraints: Dict[str, Any],
-        risk_preferences: Dict[str, Any]
+        risk_preferences: Dict[str, Any],
     ) -> Optional[PortfolioRecommendation]:
         try:
             if not recommendations:
                 return None
 
-            portfolio_size = portfolio_constraints.get("portfolio_size", settings.default_portfolio_size)
+            portfolio_size = portfolio_constraints.get(
+                "portfolio_size", settings.default_portfolio_size
+            )
             max_positions = portfolio_constraints.get("max_positions", 10)
 
             # Select top recommendations
-            sorted_recs = sorted(
-                recommendations,
-                key=lambda x: x.confidence_score,
-                reverse=True
-            )[:max_positions]
+            sorted_recs = sorted(recommendations, key=lambda x: x.confidence_score, reverse=True)[
+                :max_positions
+            ]
 
             # Optimize allocations
             optimized_recs = await self._optimize_allocations(sorted_recs, portfolio_constraints)
@@ -585,19 +575,17 @@ class TradingRecommendationEngine(BaseAgent):
                 diversification_score=diversification_score,
                 overall_risk_level=overall_risk,
                 portfolio_size=portfolio_size,
-                rebalancing_frequency="quarterly"
+                rebalancing_frequency="quarterly",
             )
 
             return portfolio
-        
+
         except Exception as e:
             logger.error(f"Error optimizing portfolio: {str(e)}")
             return None
 
     async def _optimize_allocations(
-        self,
-        recommendations: List[TradingRecommendation],
-        constraints: Dict[str, Any]
+        self, recommendations: List[TradingRecommendation], constraints: Dict[str, Any]
     ) -> List[TradingRecommendation]:
         total_allocation = sum(rec.recommended_allocation for rec in recommendations)
 
@@ -633,18 +621,22 @@ class TradingRecommendationEngine(BaseAgent):
                 break
 
             # Redistribute excess to uncapped positions proportionally
-            uncapped_recs = [rec for rec in recommendations if rec.recommended_allocation < max_position]
+            uncapped_recs = [
+                rec for rec in recommendations if rec.recommended_allocation < max_position
+            ]
 
             if uncapped_recs:
                 uncapped_total = sum(rec.recommended_allocation for rec in uncapped_recs)
                 if uncapped_total > 0:
                     for rec in uncapped_recs:
                         # Distribute excess proportionally
-                        rec.recommended_allocation += excess * (rec.recommended_allocation / uncapped_total)
-                        
+                        rec.recommended_allocation += excess * (
+                            rec.recommended_allocation / uncapped_total
+                        )
+
         # Final normalization: if all positions got capped, scale up to reach target
         final_total = sum(rec.recommended_allocation for rec in recommendations)
-        
+
         if final_total < target_allocation - 0.001:  # If its below target
             # Scale everything up proportionally to reach target
             final_scale = target_allocation / final_total
@@ -653,7 +645,9 @@ class TradingRecommendationEngine(BaseAgent):
 
         return recommendations
 
-    def _calculate_diversification_score(self, recommendations: List[TradingRecommendation]) -> float:
+    def _calculate_diversification_score(
+        self, recommendations: List[TradingRecommendation]
+    ) -> float:
         if len(recommendations) <= 1:
             return 0.0
 
@@ -665,7 +659,7 @@ class TradingRecommendationEngine(BaseAgent):
             RiskLevel.LOW: 1,
             RiskLevel.MEDIUM: 2,
             RiskLevel.HIGH: 3,
-            RiskLevel.VERY_HIGH: 4
+            RiskLevel.VERY_HIGH: 4,
         }
 
         avg_risk = np.mean([risk_values[risk] for risk in risk_levels])
@@ -680,9 +674,7 @@ class TradingRecommendationEngine(BaseAgent):
             return RiskLevel.LOW
 
     async def _generate_alerts(
-        self,
-        symbol: str,
-        context: Dict[str, Any]
+        self, symbol: str, context: Dict[str, Any]
     ) -> List[AlertRecommendation]:
         alerts = []
 
@@ -695,43 +687,54 @@ class TradingRecommendationEngine(BaseAgent):
 
             # RSI alerts
             if rsi < 25:
-                alerts.append(AlertRecommendation(
-                    symbol=symbol,
-                    alert_type="technical_oversold",
-                    message=f"{symbol} RSI at {rsi:.1f} - potentially oversold",
-                    urgency="medium",
-                    trigger_conditions={"rsi": rsi, "threshold": 25}
-                ))
+                alerts.append(
+                    AlertRecommendation(
+                        symbol=symbol,
+                        alert_type="technical_oversold",
+                        message=f"{symbol} RSI at {rsi:.1f} - potentially oversold",
+                        urgency="medium",
+                        trigger_conditions={"rsi": rsi, "threshold": 25},
+                    )
+                )
             elif rsi > 75:
-                alerts.append(AlertRecommendation(
-                    symbol=symbol,
-                    alert_type="technical_overbought",
-                    message=f"{symbol} RSI at {rsi:.1f} - potentially overbought",
-                    urgency="medium",
-                    trigger_conditions={"rsi": rsi, "threshold": 75}
-                ))
+                alerts.append(
+                    AlertRecommendation(
+                        symbol=symbol,
+                        alert_type="technical_overbought",
+                        message=f"{symbol} RSI at {rsi:.1f} - potentially overbought",
+                        urgency="medium",
+                        trigger_conditions={"rsi": rsi, "threshold": 75},
+                    )
+                )
 
             # Support/resistance alerts
             support = technical_data.get("support_level")
             resistance = technical_data.get("resistance_level")
 
             if support and current_price <= support * 1.02:
-                alerts.append(AlertRecommendation(
-                    symbol=symbol,
-                    alert_type="price_support",
-                    message=f"{symbol} near support level at ${support:.2f}",
-                    urgency="high",
-                    trigger_conditions={"current_price": current_price, "support": support}
-                ))
+                alerts.append(
+                    AlertRecommendation(
+                        symbol=symbol,
+                        alert_type="price_support",
+                        message=f"{symbol} near support level at ${support:.2f}",
+                        urgency="high",
+                        trigger_conditions={"current_price": current_price, "support": support},
+                    )
+                )
 
             if resistance and current_price >= resistance * 0.98:
-                alerts.append(AlertRecommendation(
-                    symbol=symbol,
-                    alert_type="price_resistance",
-                    message=f"{symbol} near resistance level at ${resistance:.2f}",
-                    urgency="high",
-                    trigger_conditions={"current_price": current_price, "resistance": resistance}
-                ))
+                alerts.append(
+                    AlertRecommendation(
+                        symbol=symbol,
+                        alert_type="price_resistance",
+                        message=f"{symbol} near resistance level at ${resistance:.2f}",
+                        urgency="high",
+                        trigger_conditions={
+                            "current_price": current_price,
+                            "resistance": resistance,
+                        },
+                    )
+                )
 
         except Exception as e:
             logger.warning(f"Error generating alerts for {symbol}: {str(e)}")
@@ -740,9 +743,9 @@ class TradingRecommendationEngine(BaseAgent):
 
     async def _health_check_impl(self) -> None:
         try:
-            test_response = await self.llm.ainvoke([
-                HumanMessage(content="Respond with 'OK' for health check.")
-            ])
+            test_response = await self.llm.ainvoke(
+                [HumanMessage(content="Respond with 'OK' for health check.")]
+            )
             if "OK" not in test_response.content:
                 raise Exception("LLM health check failed")
         except Exception as e:
