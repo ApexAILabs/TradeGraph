@@ -15,7 +15,7 @@ class FinancialAnalysisAgent(BaseAgent):
         super().__init__(
             name="FinancialAnalysisAgent",
             description="Analyzes company financials and technical indicators",
-            **kwargs
+            **kwargs,
         )
         self.session: Optional[aiohttp.ClientSession] = None
 
@@ -46,15 +46,21 @@ class FinancialAnalysisAgent(BaseAgent):
 
                 if include_market_data:
                     market_data = await self._get_market_data(symbol)
-                    symbol_data["market_data"] = market_data.dict() if market_data else None
+                    symbol_data["market_data"] = (
+                        market_data.dict() if market_data else None
+                    )
 
                 if include_financials:
                     financials = await self._get_company_financials(symbol)
-                    symbol_data["financials"] = financials.dict() if financials else None
+                    symbol_data["financials"] = (
+                        financials.dict() if financials else None
+                    )
 
                 if include_technical:
                     technical = await self._get_technical_indicators(symbol)
-                    symbol_data["technical_indicators"] = technical.dict() if technical else None
+                    symbol_data["technical_indicators"] = (
+                        technical.dict() if technical else None
+                    )
 
                 results[symbol] = symbol_data
 
@@ -64,7 +70,7 @@ class FinancialAnalysisAgent(BaseAgent):
 
         return {
             "analysis_results": results,
-            "analysis_timestamp": datetime.now().isoformat()
+            "analysis_timestamp": datetime.now().isoformat(),
         }
 
     async def _get_market_data(self, symbol: str) -> Optional[MarketData]:
@@ -80,13 +86,15 @@ class FinancialAnalysisAgent(BaseAgent):
 
             market_data = MarketData(
                 symbol=symbol,
-                current_price=float(latest['Close']),
-                change=float(latest['Close'] - latest['Open']),
-                change_percent=float((latest['Close'] - latest['Open']) / latest['Open'] * 100),
-                volume=int(latest['Volume']),
-                market_cap=info.get('marketCap'),
-                pe_ratio=info.get('trailingPE'),
-                timestamp=datetime.now()
+                current_price=float(latest["Close"]),
+                change=float(latest["Close"] - latest["Open"]),
+                change_percent=float(
+                    (latest["Close"] - latest["Open"]) / latest["Open"] * 100
+                ),
+                volume=int(latest["Volume"]),
+                market_cap=info.get("marketCap"),
+                pe_ratio=info.get("trailingPE"),
+                timestamp=datetime.now(),
             )
 
             return market_data
@@ -102,24 +110,24 @@ class FinancialAnalysisAgent(BaseAgent):
 
             financials = CompanyFinancials(
                 symbol=symbol,
-                company_name=info.get('longName', symbol),
-                market_cap=info.get('marketCap'),
-                pe_ratio=info.get('trailingPE'),
-                eps=info.get('trailingEps'),
-                revenue=info.get('totalRevenue'),
-                net_income=info.get('netIncomeToCommon'),
-                debt_to_equity=info.get('debtToEquity'),
-                current_ratio=info.get('currentRatio'),
-                return_on_equity=info.get('returnOnEquity'),
-                return_on_assets=info.get('returnOnAssets'),
-                price_to_book=info.get('priceToBook'),
-                dividend_yield=info.get('dividendYield'),
-                beta=info.get('beta'),
-                fifty_two_week_high=info.get('fiftyTwoWeekHigh'),
-                fifty_two_week_low=info.get('fiftyTwoWeekLow'),
-                current_price=info.get('currentPrice'),
+                company_name=info.get("longName", symbol),
+                market_cap=info.get("marketCap"),
+                pe_ratio=info.get("trailingPE"),
+                eps=info.get("trailingEps"),
+                revenue=info.get("totalRevenue"),
+                net_income=info.get("netIncomeToCommon"),
+                debt_to_equity=info.get("debtToEquity"),
+                current_ratio=info.get("currentRatio"),
+                return_on_equity=info.get("returnOnEquity"),
+                return_on_assets=info.get("returnOnAssets"),
+                price_to_book=info.get("priceToBook"),
+                dividend_yield=info.get("dividendYield"),
+                beta=info.get("beta"),
+                fifty_two_week_high=info.get("fiftyTwoWeekHigh"),
+                fifty_two_week_low=info.get("fiftyTwoWeekLow"),
+                current_price=info.get("currentPrice"),
                 report_date=datetime.now(),
-                report_type="quarterly"
+                report_type="quarterly",
             )
 
             return financials
@@ -128,7 +136,9 @@ class FinancialAnalysisAgent(BaseAgent):
             logger.error(f"Error fetching financials for {symbol}: {str(e)}")
             return None
 
-    async def _get_technical_indicators(self, symbol: str) -> Optional[TechnicalIndicators]:
+    async def _get_technical_indicators(
+        self, symbol: str
+    ) -> Optional[TechnicalIndicators]:
         try:
             ticker = yf.Ticker(symbol)
             history = ticker.history(period="3mo")  # 3 months of data
@@ -137,7 +147,7 @@ class FinancialAnalysisAgent(BaseAgent):
                 return None
 
             # Calculate technical indicators
-            close_prices = history['Close']
+            close_prices = history["Close"]
 
             # Simple Moving Averages
             sma_20 = close_prices.rolling(window=20).mean().iloc[-1]
@@ -168,8 +178,8 @@ class FinancialAnalysisAgent(BaseAgent):
             bollinger_lower = bb_sma - (bb_std * 2)
 
             # Support and Resistance (simplified)
-            recent_high = history['High'].tail(20).max()
-            recent_low = history['Low'].tail(20).min()
+            recent_high = history["High"].tail(20).max()
+            recent_low = history["Low"].tail(20).min()
 
             technical = TechnicalIndicators(
                 symbol=symbol,
@@ -178,19 +188,29 @@ class FinancialAnalysisAgent(BaseAgent):
                 ema_12=float(ema_12) if not pd.isna(ema_12) else None,
                 ema_26=float(ema_26) if not pd.isna(ema_26) else None,
                 rsi=float(rsi) if not pd.isna(rsi) else None,
-                macd=float(macd_line.iloc[-1]) if not pd.isna(macd_line.iloc[-1]) else None,
+                macd=(
+                    float(macd_line.iloc[-1])
+                    if not pd.isna(macd_line.iloc[-1])
+                    else None
+                ),
                 macd_signal=float(macd_signal) if not pd.isna(macd_signal) else None,
-                bollinger_upper=float(bollinger_upper) if not pd.isna(bollinger_upper) else None,
-                bollinger_lower=float(bollinger_lower) if not pd.isna(bollinger_lower) else None,
+                bollinger_upper=(
+                    float(bollinger_upper) if not pd.isna(bollinger_upper) else None
+                ),
+                bollinger_lower=(
+                    float(bollinger_lower) if not pd.isna(bollinger_lower) else None
+                ),
                 support_level=float(recent_low),
                 resistance_level=float(recent_high),
-                timestamp=datetime.now()
+                timestamp=datetime.now(),
             )
 
             return technical
 
         except Exception as e:
-            logger.error(f"Error calculating technical indicators for {symbol}: {str(e)}")
+            logger.error(
+                f"Error calculating technical indicators for {symbol}: {str(e)}"
+            )
             return None
 
     async def _health_check_impl(self) -> None:

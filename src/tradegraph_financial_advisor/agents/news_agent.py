@@ -15,7 +15,7 @@ class NewsReaderAgent(BaseAgent):
         super().__init__(
             name="NewsReaderAgent",
             description="Reads and analyzes financial news from multiple sources",
-            **kwargs
+            **kwargs,
         )
         self.session: Optional[aiohttp.ClientSession] = None
 
@@ -42,7 +42,10 @@ class NewsReaderAgent(BaseAgent):
         for source in settings.news_sources:
             try:
                 articles = await self._fetch_news_from_source(
-                    source, symbols, timeframe_hours, max_articles // len(settings.news_sources)
+                    source,
+                    symbols,
+                    timeframe_hours,
+                    max_articles // len(settings.news_sources),
                 )
                 all_articles.extend(articles)
             except Exception as e:
@@ -54,28 +57,34 @@ class NewsReaderAgent(BaseAgent):
             "articles": [article.dict() for article in analyzed_articles],
             "total_count": len(analyzed_articles),
             "sources": settings.news_sources,
-            "analysis_timestamp": datetime.now().isoformat()
+            "analysis_timestamp": datetime.now().isoformat(),
         }
 
     async def _fetch_news_from_source(
-        self,
-        source: str,
-        symbols: List[str],
-        timeframe_hours: int,
-        max_articles: int
+        self, source: str, symbols: List[str], timeframe_hours: int, max_articles: int
     ) -> List[NewsArticle]:
         articles = []
 
         if source == "yahoo-finance":
-            articles = await self._fetch_yahoo_finance_news(symbols, timeframe_hours, max_articles)
+            articles = await self._fetch_yahoo_finance_news(
+                symbols, timeframe_hours, max_articles
+            )
         elif source == "bloomberg":
-            articles = await self._fetch_bloomberg_news(symbols, timeframe_hours, max_articles)
+            articles = await self._fetch_bloomberg_news(
+                symbols, timeframe_hours, max_articles
+            )
         elif source == "reuters":
-            articles = await self._fetch_reuters_news(symbols, timeframe_hours, max_articles)
+            articles = await self._fetch_reuters_news(
+                symbols, timeframe_hours, max_articles
+            )
         elif source == "marketwatch":
-            articles = await self._fetch_marketwatch_news(symbols, timeframe_hours, max_articles)
+            articles = await self._fetch_marketwatch_news(
+                symbols, timeframe_hours, max_articles
+            )
         elif source == "cnbc":
-            articles = await self._fetch_cnbc_news(symbols, timeframe_hours, max_articles)
+            articles = await self._fetch_cnbc_news(
+                symbols, timeframe_hours, max_articles
+            )
 
         return articles
 
@@ -90,22 +99,28 @@ class NewsReaderAgent(BaseAgent):
                 async with self.session.get(url) as response:
                     if response.status == 200:
                         html = await response.text()
-                        soup = BeautifulSoup(html, 'html.parser')
+                        soup = BeautifulSoup(html, "html.parser")
 
-                        news_items = soup.find_all('div', class_=['Mb(5px)', 'news-item'])[:max_articles]
+                        news_items = soup.find_all(
+                            "div", class_=["Mb(5px)", "news-item"]
+                        )[:max_articles]
 
                         for item in news_items:
                             try:
-                                title_elem = item.find('h3') or item.find('a')
+                                title_elem = item.find("h3") or item.find("a")
                                 if title_elem:
                                     title = title_elem.get_text(strip=True)
-                                    link = title_elem.get('href', '')
-                                    if link and not link.startswith('http'):
+                                    link = title_elem.get("href", "")
+                                    if link and not link.startswith("http"):
                                         link = f"https://finance.yahoo.com{link}"
 
                                     # Extract article content
-                                    raw_content = await self._extract_article_content(link)
-                                    content = (raw_content or "")[:1000]  # Limit content length
+                                    raw_content = await self._extract_article_content(
+                                        link
+                                    )
+                                    content = (raw_content or "")[
+                                        :1000
+                                    ]  # Limit content length
 
                                     article = NewsArticle(
                                         title=title,
@@ -114,14 +129,18 @@ class NewsReaderAgent(BaseAgent):
                                         summary=generate_summary(raw_content or title),
                                         source="yahoo-finance",
                                         published_at=datetime.now(),
-                                        symbols=[symbol]
+                                        symbols=[symbol],
                                     )
                                     articles.append(article)
                             except Exception as e:
-                                logger.warning(f"Error parsing Yahoo Finance news item: {str(e)}")
+                                logger.warning(
+                                    f"Error parsing Yahoo Finance news item: {str(e)}"
+                                )
 
             except Exception as e:
-                logger.error(f"Error fetching Yahoo Finance news for {symbol}: {str(e)}")
+                logger.error(
+                    f"Error fetching Yahoo Finance news for {symbol}: {str(e)}"
+                )
 
         return articles
 
@@ -139,18 +158,18 @@ class NewsReaderAgent(BaseAgent):
             async with self.session.get(url) as response:
                 if response.status == 200:
                     html = await response.text()
-                    soup = BeautifulSoup(html, 'html.parser')
+                    soup = BeautifulSoup(html, "html.parser")
 
                     # Extract news items (this is simplified)
-                    news_items = soup.find_all('div', class_='storyItem')[:max_articles]
+                    news_items = soup.find_all("div", class_="storyItem")[:max_articles]
 
                     for item in news_items:
                         try:
-                            title_elem = item.find('a')
+                            title_elem = item.find("a")
                             if title_elem:
                                 title = title_elem.get_text(strip=True)
-                                link = title_elem.get('href', '')
-                                if link and not link.startswith('http'):
+                                link = title_elem.get("href", "")
+                                if link and not link.startswith("http"):
                                     link = f"https://www.bloomberg.com{link}"
 
                                 raw_content = await self._extract_article_content(link)
@@ -163,11 +182,13 @@ class NewsReaderAgent(BaseAgent):
                                     summary=generate_summary(raw_content or title),
                                     source="bloomberg",
                                     published_at=datetime.now(),
-                                    symbols=symbols
+                                    symbols=symbols,
                                 )
                                 articles.append(article)
                         except Exception as e:
-                            logger.warning(f"Error parsing Bloomberg news item: {str(e)}")
+                            logger.warning(
+                                f"Error parsing Bloomberg news item: {str(e)}"
+                            )
 
         except Exception as e:
             logger.error(f"Error fetching Bloomberg news: {str(e)}")
@@ -186,20 +207,24 @@ class NewsReaderAgent(BaseAgent):
                 async with self.session.get(url) as response:
                     if response.status == 200:
                         html = await response.text()
-                        soup = BeautifulSoup(html, 'html.parser')
+                        soup = BeautifulSoup(html, "html.parser")
 
-                        news_items = soup.find_all('div', class_='story-card')[:max_articles]
+                        news_items = soup.find_all("div", class_="story-card")[
+                            :max_articles
+                        ]
 
                         for item in news_items:
                             try:
-                                title_elem = item.find('a')
+                                title_elem = item.find("a")
                                 if title_elem:
                                     title = title_elem.get_text(strip=True)
-                                    link = title_elem.get('href', '')
-                                    if link and not link.startswith('http'):
+                                    link = title_elem.get("href", "")
+                                    if link and not link.startswith("http"):
                                         link = f"https://www.reuters.com{link}"
 
-                                    raw_content = await self._extract_article_content(link)
+                                    raw_content = await self._extract_article_content(
+                                        link
+                                    )
                                     content = (raw_content or "")[:1000]
 
                                     article = NewsArticle(
@@ -209,11 +234,13 @@ class NewsReaderAgent(BaseAgent):
                                         summary=generate_summary(raw_content or title),
                                         source="reuters",
                                         published_at=datetime.now(),
-                                        symbols=[symbol]
+                                        symbols=[symbol],
                                     )
                                     articles.append(article)
                             except Exception as e:
-                                logger.warning(f"Error parsing Reuters news item: {str(e)}")
+                                logger.warning(
+                                    f"Error parsing Reuters news item: {str(e)}"
+                                )
 
         except Exception as e:
             logger.error(f"Error fetching Reuters news: {str(e)}")
@@ -240,7 +267,7 @@ class NewsReaderAgent(BaseAgent):
             async with self.session.get(url) as response:
                 if response.status == 200:
                     html = await response.text()
-                    soup = BeautifulSoup(html, 'html.parser')
+                    soup = BeautifulSoup(html, "html.parser")
 
                     # Remove script and style elements
                     for script in soup(["script", "style"]):
@@ -251,8 +278,10 @@ class NewsReaderAgent(BaseAgent):
 
                     # Clean up whitespace
                     lines = (line.strip() for line in text.splitlines())
-                    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-                    text = ' '.join(chunk for chunk in chunks if chunk)
+                    chunks = (
+                        phrase.strip() for line in lines for phrase in line.split("  ")
+                    )
+                    text = " ".join(chunk for chunk in chunks if chunk)
 
                     return text[:2000]  # Limit content length
 
@@ -290,13 +319,35 @@ class NewsReaderAgent(BaseAgent):
         # Simple keyword-based sentiment analysis
         # In production, use a proper NLP model
 
-        bullish_keywords = ['buy', 'bullish', 'positive', 'growth', 'profit', 'strong', 'gains', 'upgrade']
-        bearish_keywords = ['sell', 'bearish', 'negative', 'loss', 'decline', 'weak', 'downgrade', 'risk']
+        bullish_keywords = [
+            "buy",
+            "bullish",
+            "positive",
+            "growth",
+            "profit",
+            "strong",
+            "gains",
+            "upgrade",
+        ]
+        bearish_keywords = [
+            "sell",
+            "bearish",
+            "negative",
+            "loss",
+            "decline",
+            "weak",
+            "downgrade",
+            "risk",
+        ]
 
         content_lower = content.lower()
 
-        bullish_count = sum(1 for keyword in bullish_keywords if keyword in content_lower)
-        bearish_count = sum(1 for keyword in bearish_keywords if keyword in content_lower)
+        bullish_count = sum(
+            1 for keyword in bullish_keywords if keyword in content_lower
+        )
+        bearish_count = sum(
+            1 for keyword in bearish_keywords if keyword in content_lower
+        )
 
         if bullish_count > bearish_count:
             return SentimentType.BULLISH
@@ -305,7 +356,9 @@ class NewsReaderAgent(BaseAgent):
         else:
             return SentimentType.NEUTRAL
 
-    async def _calculate_impact_score(self, article: NewsArticle, symbols: List[str]) -> float:
+    async def _calculate_impact_score(
+        self, article: NewsArticle, symbols: List[str]
+    ) -> float:
         # Calculate impact score based on various factors
         score = 0.5  # Base score
 
@@ -320,7 +373,14 @@ class NewsReaderAgent(BaseAgent):
                 score += 0.1
 
         # Boost score for high-impact keywords
-        high_impact_keywords = ['earnings', 'merger', 'acquisition', 'partnership', 'lawsuit', 'fda approval']
+        high_impact_keywords = [
+            "earnings",
+            "merger",
+            "acquisition",
+            "partnership",
+            "lawsuit",
+            "fda approval",
+        ]
         for keyword in high_impact_keywords:
             if keyword in content_lower or keyword in title_lower:
                 score += 0.15

@@ -82,8 +82,12 @@ class TradingRecommendationEngine(BaseAgent):
             report_analysis = context.get("report_analysis", {})
 
             # Calculate individual scores
-            fundamental_score = await self._calculate_fundamental_score(financials, report_analysis)
-            technical_score = await self._calculate_technical_score(technical_data, market_data)
+            fundamental_score = await self._calculate_fundamental_score(
+                financials, report_analysis
+            )
+            technical_score = await self._calculate_technical_score(
+                technical_data, market_data
+            )
             sentiment_score = await self._calculate_sentiment_score(news_sentiment)
 
             # Overall confidence score (weighted combination)
@@ -373,7 +377,10 @@ class TradingRecommendationEngine(BaseAgent):
             return TimeHorizon.SHORT_TERM
 
         # Strong recommendations can be longer term
-        if recommendation_type in [RecommendationType.STRONG_BUY, RecommendationType.STRONG_SELL]:
+        if recommendation_type in [
+            RecommendationType.STRONG_BUY,
+            RecommendationType.STRONG_SELL,
+        ]:
             return TimeHorizon.LONG_TERM
 
         return TimeHorizon.MEDIUM_TERM
@@ -410,7 +417,9 @@ class TradingRecommendationEngine(BaseAgent):
         risk_tolerance = risk_preferences.get("risk_tolerance", "medium")
         tolerance_multipliers = {"conservative": 0.6, "medium": 1.0, "aggressive": 1.4}
 
-        final_allocation = risk_adjusted * tolerance_multipliers.get(risk_tolerance, 1.0)
+        final_allocation = risk_adjusted * tolerance_multipliers.get(
+            risk_tolerance, 1.0
+        )
 
         return max(
             0.01, final_allocation
@@ -428,7 +437,10 @@ class TradingRecommendationEngine(BaseAgent):
             target_price = None
             stop_loss = None
 
-            if recommendation_type in [RecommendationType.BUY, RecommendationType.STRONG_BUY]:
+            if recommendation_type in [
+                RecommendationType.BUY,
+                RecommendationType.STRONG_BUY,
+            ]:
                 # Calculate upside target
                 resistance = technical_data.get("resistance_level")
                 if resistance:
@@ -451,7 +463,10 @@ class TradingRecommendationEngine(BaseAgent):
                 else:
                     stop_loss = current_price * 0.90  # 10% stop loss
 
-            elif recommendation_type in [RecommendationType.SELL, RecommendationType.STRONG_SELL]:
+            elif recommendation_type in [
+                RecommendationType.SELL,
+                RecommendationType.STRONG_SELL,
+            ]:
                 # For short positions
                 support = technical_data.get("support_level")
                 if support:
@@ -530,9 +545,15 @@ class TradingRecommendationEngine(BaseAgent):
         if not target_price:
             return None
 
-        if recommendation_type in [RecommendationType.BUY, RecommendationType.STRONG_BUY]:
+        if recommendation_type in [
+            RecommendationType.BUY,
+            RecommendationType.STRONG_BUY,
+        ]:
             return (target_price - current_price) / current_price
-        elif recommendation_type in [RecommendationType.SELL, RecommendationType.STRONG_SELL]:
+        elif recommendation_type in [
+            RecommendationType.SELL,
+            RecommendationType.STRONG_SELL,
+        ]:
             return (current_price - target_price) / current_price  # Profit from short
 
         return 0.0
@@ -553,16 +574,20 @@ class TradingRecommendationEngine(BaseAgent):
             max_positions = portfolio_constraints.get("max_positions", 10)
 
             # Select top recommendations
-            sorted_recs = sorted(recommendations, key=lambda x: x.confidence_score, reverse=True)[
-                :max_positions
-            ]
+            sorted_recs = sorted(
+                recommendations, key=lambda x: x.confidence_score, reverse=True
+            )[:max_positions]
 
             # Optimize allocations
-            optimized_recs = await self._optimize_allocations(sorted_recs, portfolio_constraints)
+            optimized_recs = await self._optimize_allocations(
+                sorted_recs, portfolio_constraints
+            )
 
             # Calculate portfolio metrics
             total_confidence = np.mean([rec.confidence_score for rec in optimized_recs])
-            diversification_score = self._calculate_diversification_score(optimized_recs)
+            diversification_score = self._calculate_diversification_score(
+                optimized_recs
+            )
 
             # Risk assessment
             risk_levels = [rec.risk_level for rec in optimized_recs]
@@ -621,11 +646,15 @@ class TradingRecommendationEngine(BaseAgent):
 
             # Redistribute excess to uncapped positions proportionally
             uncapped_recs = [
-                rec for rec in recommendations if rec.recommended_allocation < max_position
+                rec
+                for rec in recommendations
+                if rec.recommended_allocation < max_position
             ]
 
             if uncapped_recs:
-                uncapped_total = sum(rec.recommended_allocation for rec in uncapped_recs)
+                uncapped_total = sum(
+                    rec.recommended_allocation for rec in uncapped_recs
+                )
                 if uncapped_total > 0:
                     for rec in uncapped_recs:
                         # Distribute excess proportionally
@@ -717,7 +746,10 @@ class TradingRecommendationEngine(BaseAgent):
                         alert_type="price_support",
                         message=f"{symbol} near support level at ${support:.2f}",
                         urgency="high",
-                        trigger_conditions={"current_price": current_price, "support": support},
+                        trigger_conditions={
+                            "current_price": current_price,
+                            "support": support,
+                        },
                     )
                 )
 

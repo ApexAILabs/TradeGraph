@@ -35,14 +35,13 @@ class BaseAgent(ABC):
             "description": self.description,
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat(),
-            "last_activity": self.last_activity.isoformat()
+            "last_activity": self.last_activity.isoformat(),
         }
 
     async def health_check(self) -> bool:
         try:
             await asyncio.wait_for(
-                self._health_check_impl(),
-                timeout=settings.analysis_timeout_seconds
+                self._health_check_impl(), timeout=settings.analysis_timeout_seconds
             )
             return True
         except asyncio.TimeoutError:

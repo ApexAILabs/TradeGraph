@@ -70,7 +70,9 @@ def generate_summary(text: str, max_sentences: int = 2, max_length: int = 320) -
     return summary
 
 
-def calculate_portfolio_metrics(recommendations: List[Dict[str, Any]]) -> Dict[str, float]:
+def calculate_portfolio_metrics(
+    recommendations: List[Dict[str, Any]],
+) -> Dict[str, float]:
     """
     Calculate basic portfolio metrics from recommendations.
 
@@ -83,8 +85,12 @@ def calculate_portfolio_metrics(recommendations: List[Dict[str, Any]]) -> Dict[s
     if not recommendations:
         return {}
 
-    total_allocation = sum(rec.get("recommended_allocation", 0) for rec in recommendations)
-    avg_confidence = sum(rec.get("confidence_score", 0) for rec in recommendations) / len(recommendations)
+    total_allocation = sum(
+        rec.get("recommended_allocation", 0) for rec in recommendations
+    )
+    avg_confidence = sum(
+        rec.get("confidence_score", 0) for rec in recommendations
+    ) / len(recommendations)
 
     # Risk distribution
     risk_counts = {}
@@ -93,19 +99,27 @@ def calculate_portfolio_metrics(recommendations: List[Dict[str, Any]]) -> Dict[s
         risk_counts[risk] = risk_counts.get(risk, 0) + 1
 
     # Expected returns
-    expected_returns = [rec.get("expected_return", 0) for rec in recommendations if rec.get("expected_return")]
-    avg_expected_return = sum(expected_returns) / len(expected_returns) if expected_returns else 0
+    expected_returns = [
+        rec.get("expected_return", 0)
+        for rec in recommendations
+        if rec.get("expected_return")
+    ]
+    avg_expected_return = (
+        sum(expected_returns) / len(expected_returns) if expected_returns else 0
+    )
 
     return {
         "total_allocation": total_allocation,
         "average_confidence": avg_confidence,
         "number_of_positions": len(recommendations),
         "risk_distribution": risk_counts,
-        "average_expected_return": avg_expected_return
+        "average_expected_return": avg_expected_return,
     }
 
 
-def save_analysis_results(results: Dict[str, Any], filename: Optional[str] = None) -> str:
+def save_analysis_results(
+    results: Dict[str, Any], filename: Optional[str] = None
+) -> str:
     """
     Save analysis results to a JSON file.
 
@@ -118,7 +132,9 @@ def save_analysis_results(results: Dict[str, Any], filename: Optional[str] = Non
     """
     if not filename:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        symbols = results.get("analysis_summary", {}).get("symbols_analyzed", ["unknown"])
+        symbols = results.get("analysis_summary", {}).get(
+            "symbols_analyzed", ["unknown"]
+        )
         symbols_str = "_".join(symbols[:3])  # First 3 symbols
         filename = f"tradegraph_analysis_{symbols_str}_{timestamp}.json"
 
@@ -127,7 +143,7 @@ def save_analysis_results(results: Dict[str, Any], filename: Optional[str] = Non
     filepath = os.path.join("results", filename)
 
     try:
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             json.dump(results, f, indent=2, default=str)
 
         logger.info(f"Analysis results saved to {filepath}")
@@ -149,7 +165,7 @@ def load_analysis_results(filepath: str) -> Dict[str, Any]:
         Analysis results dictionary
     """
     try:
-        with open(filepath, 'r') as f:
+        with open(filepath, "r") as f:
             results = json.load(f)
 
         logger.info(f"Analysis results loaded from {filepath}")
@@ -164,7 +180,7 @@ async def retry_async_operation(
     operation: Callable,
     max_retries: int = 3,
     delay: float = 1.0,
-    exponential_backoff: bool = True
+    exponential_backoff: bool = True,
 ) -> Any:
     """
     Retry an async operation with configurable backoff.
@@ -191,8 +207,10 @@ async def retry_async_operation(
                 logger.error(f"Operation failed after {max_retries} retries: {str(e)}")
                 raise e
 
-            wait_time = delay * (2 ** attempt) if exponential_backoff else delay
-            logger.warning(f"Operation failed (attempt {attempt + 1}/{max_retries + 1}), retrying in {wait_time}s: {str(e)}")
+            wait_time = delay * (2**attempt) if exponential_backoff else delay
+            logger.warning(
+                f"Operation failed (attempt {attempt + 1}/{max_retries + 1}), retrying in {wait_time}s: {str(e)}"
+            )
             await asyncio.sleep(wait_time)
 
     raise last_exception
@@ -268,8 +286,7 @@ def get_market_hours_status() -> Dict[str, Any]:
     current_time = hour + minute / 60.0
 
     is_market_hours = (
-        not is_weekend and
-        market_open_time <= current_time <= market_close_time
+        not is_weekend and market_open_time <= current_time <= market_close_time
     )
 
     if is_weekend:
@@ -286,7 +303,7 @@ def get_market_hours_status() -> Dict[str, Any]:
         "status": status,
         "current_time": now.isoformat(),
         "next_open": "calculated_separately",  # Would need more complex logic
-        "timezone": "US/Eastern"  # Simplified
+        "timezone": "US/Eastern",  # Simplified
     }
 
 

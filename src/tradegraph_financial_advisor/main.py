@@ -17,7 +17,9 @@ class FinancialAdvisor:
     def __init__(self, llm_model_name: str = "gpt-5-nano"):
         self.llm_model_name = llm_model_name
         self.workflow = FinancialAnalysisWorkflow(llm_model_name=self.llm_model_name)
-        self.recommendation_engine = TradingRecommendationEngine(model_name=self.llm_model_name)
+        self.recommendation_engine = TradingRecommendationEngine(
+            model_name=self.llm_model_name
+        )
         self.report_analyzer = ReportAnalysisAgent(llm_model_name=self.llm_model_name)
 
     async def analyze_portfolio(
@@ -160,10 +162,14 @@ class FinancialAdvisor:
                 }
 
             elif analysis_type == "standard":
-                return await self.analyze_portfolio(symbols=symbols, include_reports=False)
+                return await self.analyze_portfolio(
+                    symbols=symbols, include_reports=False
+                )
 
             else:  # detailed
-                return await self.analyze_portfolio(symbols=symbols, include_reports=True)
+                return await self.analyze_portfolio(
+                    symbols=symbols, include_reports=True
+                )
 
         except Exception as e:
             logger.error(f"Quick analysis failed: {str(e)}")
@@ -225,12 +231,16 @@ class FinancialAdvisor:
         if portfolio:
             print("\n📊 PORTFOLIO RECOMMENDATION")
             print(f"Overall Confidence: {portfolio.get('total_confidence', 0):.1%}")
-            print(f"Diversification Score: {portfolio.get('diversification_score', 0):.1%}")
+            print(
+                f"Diversification Score: {portfolio.get('diversification_score', 0):.1%}"
+            )
             print(f"Risk Level: {portfolio.get('overall_risk_level', 'Unknown')}")
 
             recommendations = portfolio.get("recommendations", [])
             if recommendations:
-                print(f"\n📈 INDIVIDUAL RECOMMENDATIONS ({len(recommendations)} stocks):")
+                print(
+                    f"\n📈 INDIVIDUAL RECOMMENDATIONS ({len(recommendations)} stocks):"
+                )
                 print("-" * 60)
 
                 for rec in recommendations:
@@ -241,7 +251,9 @@ class FinancialAdvisor:
                     target = rec.get("target_price")
                     current = rec.get("current_price", 0)
 
-                    print(f"\n{symbol}: {recommendation} (Confidence: {confidence:.1%})")
+                    print(
+                        f"\n{symbol}: {recommendation} (Confidence: {confidence:.1%})"
+                    )
                     print(
                         f"  Current: ${current:.2f} | Target: ${target:.2f}"
                         if target
@@ -308,9 +320,14 @@ async def main():
         help="Analysis depth",
     )
     parser.add_argument(
-        "--output-format", choices=["console", "json"], default="console", help="Output format"
+        "--output-format",
+        choices=["console", "json"],
+        default="console",
+        help="Output format",
     )
-    parser.add_argument("--alerts-only", action="store_true", help="Generate alerts only")
+    parser.add_argument(
+        "--alerts-only", action="store_true", help="Generate alerts only"
+    )
 
     args = parser.parse_args()
 
@@ -396,10 +413,14 @@ async def main():
 
                     logger.info(f"Portfolio allocation chart saved to: {chart_path}")
                 else:
-                    logger.warning("No recommendations found to create allocation chart")
+                    logger.warning(
+                        "No recommendations found to create allocation chart"
+                    )
 
             except Exception as e:
-                logger.warning(f"Failed to generate portfolio allocation chart: {str(e)}")
+                logger.warning(
+                    f"Failed to generate portfolio allocation chart: {str(e)}"
+                )
 
             # Display results based on output format
             if args.output_format == "json":

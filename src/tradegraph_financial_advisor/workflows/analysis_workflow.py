@@ -45,7 +45,9 @@ class FinancialAnalysisWorkflow:
         )
         self.news_agent = NewsReaderAgent()
         self.financial_agent = FinancialAnalysisAgent()
-        self.recommendation_engine = TradingRecommendationEngine(model_name=self.llm_model_name)
+        self.recommendation_engine = TradingRecommendationEngine(
+            model_name=self.llm_model_name
+        )
         self.local_scraping_service = scraping_service or LocalScrapingService()
         self.workflow = None
         self._build_workflow()
@@ -137,7 +139,11 @@ class FinancialAnalysisWorkflow:
             logger.info(f"Collecting news for symbols: {state['symbols']}")
 
             # Collect news from multiple sources
-            news_input = {"symbols": state["symbols"], "timeframe_hours": 48, "max_articles": 100}
+            news_input = {
+                "symbols": state["symbols"],
+                "timeframe_hours": 48,
+                "max_articles": 100,
+            }
 
             news_result = await self.news_agent.execute(news_input)
             if not isinstance(news_result, dict):
@@ -153,8 +159,12 @@ class FinancialAnalysisWorkflow:
             if not isinstance(news_articles, list):
                 news_articles = []
 
-            combined_news = [self._article_to_dict(article) for article in news_articles]
-            combined_news.extend(self._article_to_dict(article) for article in local_articles)
+            combined_news = [
+                self._article_to_dict(article) for article in news_articles
+            ]
+            combined_news.extend(
+                self._article_to_dict(article) for article in local_articles
+            )
 
             state["news_data"] = {
                 "articles": combined_news,
@@ -200,7 +210,9 @@ class FinancialAnalysisWorkflow:
                             state["financial_data"]["sec_filings"] = {}
                         state["financial_data"]["sec_filings"][symbol] = filings
                 except Exception as e:
-                    logger.warning(f"Failed to scrape SEC filings for {symbol}: {str(e)}")
+                    logger.warning(
+                        f"Failed to scrape SEC filings for {symbol}: {str(e)}"
+                    )
 
             state["messages"].append(AIMessage(content="Completed financial analysis"))
 
@@ -221,7 +233,9 @@ class FinancialAnalysisWorkflow:
 
             for symbol in state["symbols"]:
                 symbol_articles = [
-                    article for article in articles if symbol in self._get_article_symbols(article)
+                    article
+                    for article in articles
+                    if symbol in self._get_article_symbols(article)
                 ]
 
                 if not symbol_articles:
@@ -255,7 +269,9 @@ class FinancialAnalysisWorkflow:
                 - articles: list of objects with title, url, sentiment_contribution (positive/negative/neutral)
                 """
 
-                response = await self.llm.ainvoke([HumanMessage(content=sentiment_prompt)])
+                response = await self.llm.ainvoke(
+                    [HumanMessage(content=sentiment_prompt)]
+                )
 
                 try:
                     import json
@@ -305,7 +321,9 @@ class FinancialAnalysisWorkflow:
                 try:
                     # Get analysis inputs for this symbol
                     financial_data = (
-                        state["financial_data"].get("analysis_results", {}).get(symbol, {})
+                        state["financial_data"]
+                        .get("analysis_results", {})
+                        .get(symbol, {})
                     )
                     sentiment_data = state["sentiment_analysis"].get(symbol, {})
 
@@ -364,12 +382,16 @@ class FinancialAnalysisWorkflow:
                     recommendations.append(recommendation)
 
                 except Exception as e:
-                    logger.warning(f"Failed to generate recommendation for {symbol}: {str(e)}")
+                    logger.warning(
+                        f"Failed to generate recommendation for {symbol}: {str(e)}"
+                    )
 
             # Optimize portfolio allocations after all recommendations are collected
             if recommendations:
                 portfolio_constraints = {
-                    "portfolio_size": state["analysis_context"].get("portfolio_size", 100000),
+                    "portfolio_size": state["analysis_context"].get(
+                        "portfolio_size", 100000
+                    ),
                     "max_positions": 10,
                 }
                 optimized_recs = await self.recommendation_engine._optimize_allocations(
@@ -381,7 +403,9 @@ class FinancialAnalysisWorkflow:
                 state["recommendations"] = []
 
             state["messages"].append(
-                AIMessage(content=f"Generated {len(recommendations)} trading recommendations")
+                AIMessage(
+                    content=f"Generated {len(recommendations)} trading recommendations"
+                )
             )
 
         except Exception as e:
@@ -461,7 +485,9 @@ class FinancialAnalysisWorkflow:
                     "portfolio_size": portfolio_size,
                 }
 
-            state["messages"].append(AIMessage(content="Created portfolio recommendation"))
+            state["messages"].append(
+                AIMessage(content="Created portfolio recommendation")
+            )
 
         except Exception as e:
             error_msg = f"Portfolio creation failed: {str(e)}"
@@ -503,12 +529,16 @@ class FinancialAnalysisWorkflow:
             )
 
             if buy_count == 0 and sell_count == 0:
-                validation_results.append("Warning: No buy or sell recommendations generated")
+                validation_results.append(
+                    "Warning: No buy or sell recommendations generated"
+                )
 
             state["analysis_context"]["validation_results"] = validation_results
 
             state["messages"].append(
-                AIMessage(content=f"Validation completed with {len(validation_results)} notes")
+                AIMessage(
+                    content=f"Validation completed with {len(validation_results)} notes"
+                )
             )
 
         except Exception as e:
@@ -527,14 +557,20 @@ class FinancialAnalysisWorkflow:
         model_response: Optional[Dict[str, Any]] = None,
     ) -> TradingRecommendation:
         response_payload = model_response if isinstance(model_response, dict) else {}
-        analysis_context = state.get("analysis_context", {}) if isinstance(state, dict) else {}
+        analysis_context = (
+            state.get("analysis_context", {}) if isinstance(state, dict) else {}
+        )
 
         market_data = financial_data.get("market_data") or {}
         fundamentals = financial_data.get("financials") or {}
         technicals = financial_data.get("technical_indicators") or {}
 
-        portfolio_size = analysis_context.get("portfolio_size") or settings.default_portfolio_size
-        current_price = self._extract_current_price(market_data, fundamentals, technicals)
+        portfolio_size = (
+            analysis_context.get("portfolio_size") or settings.default_portfolio_size
+        )
+        current_price = self._extract_current_price(
+            market_data, fundamentals, technicals
+        )
         company_name = (
             response_payload.get("company_name")
             or fundamentals.get("company_name")
@@ -557,7 +593,9 @@ class FinancialAnalysisWorkflow:
         )
 
         risk_level = self._normalize_risk_level(
-            response_payload.get("risk_level") or analysis_context.get("risk_tolerance") or "medium"
+            response_payload.get("risk_level")
+            or analysis_context.get("risk_tolerance")
+            or "medium"
         )
         time_horizon = self._normalize_time_horizon(
             response_payload.get("time_horizon")
@@ -577,7 +615,9 @@ class FinancialAnalysisWorkflow:
             self._compute_technical_score(technicals),
         )
 
-        sentiment_score = round(sentiment_score if sentiment_score is not None else 0.5, 3)
+        sentiment_score = round(
+            sentiment_score if sentiment_score is not None else 0.5, 3
+        )
         key_factors = self._ensure_list(
             response_payload.get("key_factors")
             or sentiment_data.get("key_themes")
@@ -589,7 +629,9 @@ class FinancialAnalysisWorkflow:
             or [f"Potential volatility in {symbol}"]
         )
         catalysts = self._ensure_list(
-            response_payload.get("catalysts") or sentiment_data.get("sentiment_drivers") or []
+            response_payload.get("catalysts")
+            or sentiment_data.get("sentiment_drivers")
+            or []
         )
 
         analyst_notes = (
@@ -606,9 +648,13 @@ class FinancialAnalysisWorkflow:
 
         stop_loss = response_payload.get("stop_loss")
         if stop_loss in (None, 0):
-            stop_loss = self._estimate_stop_loss(current_price, risk_level, recommendation_type)
+            stop_loss = self._estimate_stop_loss(
+                current_price, risk_level, recommendation_type
+            )
 
-        risk_preferences = {"risk_tolerance": analysis_context.get("risk_tolerance", "medium")}
+        risk_preferences = {
+            "risk_tolerance": analysis_context.get("risk_tolerance", "medium")
+        }
         recommended_allocation = self.recommendation_engine._calculate_position_size(
             confidence_score=confidence_score,
             risk_level=risk_level,
@@ -652,7 +698,9 @@ class FinancialAnalysisWorkflow:
             "risks": risks,
             "catalysts": catalysts,
             "analyst_notes": analyst_notes,
-            "sector": fundamentals.get("sector") or response_payload.get("sector") or "Unknown",
+            "sector": fundamentals.get("sector")
+            or response_payload.get("sector")
+            or "Unknown",
             "market_cap_category": self._categorize_market_cap(market_cap_value),
             "expected_return": expected_return,
             "expected_volatility": expected_volatility,
@@ -833,7 +881,10 @@ class FinancialAnalysisWorkflow:
         }
         pct = risk_percents.get(risk_level, 0.07)
 
-        if recommendation_type in [RecommendationType.SELL, RecommendationType.STRONG_SELL]:
+        if recommendation_type in [
+            RecommendationType.SELL,
+            RecommendationType.STRONG_SELL,
+        ]:
             return current_price * (1 + pct)
         return current_price * (1 - pct)
 
@@ -876,7 +927,9 @@ class FinancialAnalysisWorkflow:
             return []
         return [str(symbols)]
 
-    def _get_article_value(self, article: Any, key: str, default: Optional[str] = None) -> Any:
+    def _get_article_value(
+        self, article: Any, key: str, default: Optional[str] = None
+    ) -> Any:
         if isinstance(article, dict):
             return article.get(key, default)
         return getattr(article, key, default)

@@ -171,7 +171,11 @@ def sample_recommendations():
             "fundamental_score": 0.85,
             "technical_score": 0.80,
             "sentiment_score": 0.90,
-            "key_factors": ["Azure growth", "AI leadership", "Strong enterprise business"],
+            "key_factors": [
+                "Azure growth",
+                "AI leadership",
+                "Strong enterprise business",
+            ],
             "risks": ["Cloud competition", "Economic slowdown"],
             "catalysts": ["AI monetization", "Copilot adoption"],
             "analyst_notes": "Dominant position in cloud and AI markets",
@@ -292,9 +296,13 @@ def mock_aiohttp_session():
     """Mock aiohttp session for testing."""
     mock_session = AsyncMock()
     mock_session.get.return_value = MockHTTPResponse(
-        status=200, json_data={"test": "data"}, text_data="<html><body>Test content</body></html>"
+        status=200,
+        json_data={"test": "data"},
+        text_data="<html><body>Test content</body></html>",
     )
-    mock_session.post.return_value = MockHTTPResponse(status=200, json_data={"success": True})
+    mock_session.post.return_value = MockHTTPResponse(
+        status=200, json_data={"success": True}
+    )
     mock_session.close.return_value = None
     return mock_session
 

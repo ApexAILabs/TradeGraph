@@ -38,7 +38,9 @@ class TradingRecommendation(BaseModel):
     time_horizon: TimeHorizon
 
     # Position sizing
-    recommended_allocation: float = Field(..., ge=0.0, le=1.0)  # Percentage of portfolio
+    recommended_allocation: float = Field(
+        ..., ge=0.0, le=1.0
+    )  # Percentage of portfolio
     max_position_size: Optional[float] = None  # Dollar amount
 
     # Analysis breakdown

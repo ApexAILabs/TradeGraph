@@ -56,7 +56,10 @@ class ReportAnalysisAgent(BaseAgent):
                 logger.error(f"Error analyzing reports for {symbol}: {str(e)}")
                 results[symbol] = {"error": str(e)}
 
-        return {"report_analysis": results, "analysis_timestamp": datetime.now().isoformat()}
+        return {
+            "report_analysis": results,
+            "analysis_timestamp": datetime.now().isoformat(),
+        }
 
     async def _analyze_company_reports(
         self, symbol: str, report_types: List[str], analysis_depth: str
@@ -87,7 +90,9 @@ class ReportAnalysisAgent(BaseAgent):
                         analysis_results["report_analyses"].append(report_analysis)
 
                 except Exception as e:
-                    logger.warning(f"Failed to analyze {report_type} for {symbol}: {str(e)}")
+                    logger.warning(
+                        f"Failed to analyze {report_type} for {symbol}: {str(e)}"
+                    )
 
             # Generate comprehensive analysis summary
             if analysis_results["report_analyses"]:
@@ -230,14 +235,18 @@ class ReportAnalysisAgent(BaseAgent):
             }}
             """
 
-            response = await self.llm.ainvoke([HumanMessage(content=combined_analysis_prompt)])
+            response = await self.llm.ainvoke(
+                [HumanMessage(content=combined_analysis_prompt)]
+            )
 
             try:
                 summary_data = json.loads(response.content)
                 return summary_data
 
             except json.JSONDecodeError as e:
-                logger.warning(f"Failed to parse comprehensive summary for {symbol}: {str(e)}")
+                logger.warning(
+                    f"Failed to parse comprehensive summary for {symbol}: {str(e)}"
+                )
                 return {
                     "executive_summary": "Analysis completed but summary parsing failed",
                     "financial_health_score": 5.0,
@@ -247,14 +256,18 @@ class ReportAnalysisAgent(BaseAgent):
                 }
 
         except Exception as e:
-            logger.error(f"Error generating comprehensive summary for {symbol}: {str(e)}")
+            logger.error(
+                f"Error generating comprehensive summary for {symbol}: {str(e)}"
+            )
             return {
                 "error": str(e),
                 "executive_summary": "Failed to generate summary",
                 "financial_health_score": 0.0,
             }
 
-    async def analyze_earnings_calls(self, symbol: str, quarters: int = 4) -> Dict[str, Any]:
+    async def analyze_earnings_calls(
+        self, symbol: str, quarters: int = 4
+    ) -> Dict[str, Any]:
         try:
             # Search for earnings call transcripts
             search_queries = [
@@ -273,7 +286,9 @@ class ReportAnalysisAgent(BaseAgent):
                     # For demo purposes, showing the structure
 
                     earnings_analysis = {
-                        "quarter": query.split("Q")[1][:1] if "Q" in query else "Unknown",
+                        "quarter": (
+                            query.split("Q")[1][:1] if "Q" in query else "Unknown"
+                        ),
                         "year": "2024",
                         "management_tone": "confident/cautious/concerned",
                         "key_themes": [],
@@ -284,7 +299,9 @@ class ReportAnalysisAgent(BaseAgent):
                     earnings_analyses.append(earnings_analysis)
 
                 except Exception as e:
-                    logger.warning(f"Failed to analyze earnings call for query {query}: {str(e)}")
+                    logger.warning(
+                        f"Failed to analyze earnings call for query {query}: {str(e)}"
+                    )
 
             return {
                 "symbol": symbol,
@@ -307,7 +324,11 @@ class ReportAnalysisAgent(BaseAgent):
         # Test LLM
         try:
             test_response = await self.llm.ainvoke(
-                [HumanMessage(content="Respond with 'OK' if you can process this message.")]
+                [
+                    HumanMessage(
+                        content="Respond with 'OK' if you can process this message."
+                    )
+                ]
             )
             if "OK" not in test_response.content:
                 raise Exception("LLM health check failed")

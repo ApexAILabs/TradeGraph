@@ -8,11 +8,17 @@ import json
 from datetime import datetime
 
 from tradegraph_financial_advisor import FinancialAdvisor
-from tradegraph_financial_advisor.workflows.analysis_workflow import FinancialAnalysisWorkflow
+from tradegraph_financial_advisor.workflows.analysis_workflow import (
+    FinancialAnalysisWorkflow,
+)
 from tradegraph_financial_advisor.agents.news_agent import NewsReaderAgent
 from tradegraph_financial_advisor.agents.financial_agent import FinancialAnalysisAgent
-from tradegraph_financial_advisor.agents.report_analysis_agent import ReportAnalysisAgent
-from tradegraph_financial_advisor.agents.recommendation_engine import TradingRecommendationEngine
+from tradegraph_financial_advisor.agents.report_analysis_agent import (
+    ReportAnalysisAgent,
+)
+from tradegraph_financial_advisor.agents.recommendation_engine import (
+    TradingRecommendationEngine,
+)
 from tradegraph_financial_advisor.utils.helpers import (
     save_analysis_results,
     load_analysis_results,
@@ -60,7 +66,11 @@ async def individual_agents_example():
 
         # 3. Analyze company reports
         print("📋 Analyzing company reports...")
-        report_input = {"symbols": symbols, "report_types": ["10-K"], "analysis_depth": "standard"}
+        report_input = {
+            "symbols": symbols,
+            "report_types": ["10-K"],
+            "analysis_depth": "standard",
+        }
         report_results = await report_agent.execute(report_input)
         print("Report analysis completed")
 
@@ -136,7 +146,10 @@ async def custom_workflow_example():
             "enhanced_recommendations": enhanced_results,
             "custom_workflow_metadata": {
                 "workflow_type": "custom_enhanced",
-                "enhancement_features": ["custom_risk_analysis", "enhanced_position_sizing"],
+                "enhancement_features": [
+                    "custom_risk_analysis",
+                    "enhanced_position_sizing",
+                ],
             },
         }
 
@@ -190,7 +203,9 @@ async def portfolio_optimization_example():
                 # Calculate additional metrics
                 portfolio_rec = results.get("portfolio_recommendation")
                 if portfolio_rec and portfolio_rec.get("recommendations"):
-                    metrics = calculate_portfolio_metrics(portfolio_rec["recommendations"])
+                    metrics = calculate_portfolio_metrics(
+                        portfolio_rec["recommendations"]
+                    )
                     results["portfolio_metrics"] = metrics
 
                 optimization_results[scenario_name] = results
@@ -200,8 +215,12 @@ async def portfolio_optimization_example():
                     print(
                         f"  ✅ {scenario_name}: {len(portfolio_rec['recommendations'])} recommendations"
                     )
-                    print(f"     Confidence: {portfolio_rec.get('total_confidence', 0):.1%}")
-                    print(f"     Risk Level: {portfolio_rec.get('overall_risk_level', 'unknown')}")
+                    print(
+                        f"     Confidence: {portfolio_rec.get('total_confidence', 0):.1%}"
+                    )
+                    print(
+                        f"     Risk Level: {portfolio_rec.get('overall_risk_level', 'unknown')}"
+                    )
 
         except Exception as e:
             print(f"  ❌ {scenario_name} optimization failed: {str(e)}")
@@ -212,7 +231,9 @@ async def portfolio_optimization_example():
         portfolio_rec = results.get("portfolio_recommendation", {})
         confidence = portfolio_rec.get("total_confidence", 0)
         risk = portfolio_rec.get("overall_risk_level", "unknown")
-        print(f"  {scenario_name:20} | Confidence: {confidence:>6.1%} | Risk: {risk:>12}")
+        print(
+            f"  {scenario_name:20} | Confidence: {confidence:>6.1%} | Risk: {risk:>12}"
+        )
 
     return optimization_results
 
@@ -286,7 +307,9 @@ async def real_time_monitoring_example():
         - datetime.fromisoformat(monitoring_results["monitoring_start"])
     ).total_seconds()
 
-    print(f"\n✅ Monitoring completed in {monitoring_results['total_duration']:.1f} seconds")
+    print(
+        f"\n✅ Monitoring completed in {monitoring_results['total_duration']:.1f} seconds"
+    )
 
     return monitoring_results
 
@@ -319,8 +342,12 @@ async def data_export_import_example():
         loaded_results = load_analysis_results(saved_file)
 
         # 4. Verify data integrity
-        original_timestamp = results.get("analysis_summary", {}).get("analysis_timestamp")
-        loaded_timestamp = loaded_results.get("analysis_summary", {}).get("analysis_timestamp")
+        original_timestamp = results.get("analysis_summary", {}).get(
+            "analysis_timestamp"
+        )
+        loaded_timestamp = loaded_results.get("analysis_summary", {}).get(
+            "analysis_timestamp"
+        )
 
         if original_timestamp == loaded_timestamp:
             print("✅ Data integrity verified - timestamps match")
@@ -357,7 +384,9 @@ async def data_export_import_example():
         )
 
         # Save custom export
-        custom_filename = f"custom_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        custom_filename = (
+            f"custom_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        )
         with open(f"results/{custom_filename}", "w") as f:
             json.dump(custom_export, f, indent=2, default=str)
 
@@ -411,7 +440,9 @@ async def error_handling_example():
 
         try:
             # Try quick analysis (more likely to succeed even with some invalid symbols)
-            results = await advisor.quick_analysis(symbols=symbols, analysis_type="basic")
+            results = await advisor.quick_analysis(
+                symbols=symbols, analysis_type="basic"
+            )
 
             if should_fail:
                 print("   ⚠️ Expected failure but analysis succeeded")

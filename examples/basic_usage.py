@@ -131,7 +131,9 @@ async def portfolio_comparison_example():
         print(f"\nAnalyzing {portfolio_name} portfolio...")
 
         try:
-            result = await advisor.quick_analysis(symbols=symbols, analysis_type="standard")
+            result = await advisor.quick_analysis(
+                symbols=symbols, analysis_type="standard"
+            )
 
             results[portfolio_name] = result
 
@@ -142,7 +144,9 @@ async def portfolio_comparison_example():
                     for rec in result["recommendations"]
                     if rec.get("recommendation") in ["buy", "strong_buy"]
                 )
-                print(f"  {portfolio_name}: {buy_count}/{len(symbols)} BUY recommendations")
+                print(
+                    f"  {portfolio_name}: {buy_count}/{len(symbols)} BUY recommendations"
+                )
 
         except Exception as e:
             print(f"  ❌ {portfolio_name} analysis failed: {str(e)}")

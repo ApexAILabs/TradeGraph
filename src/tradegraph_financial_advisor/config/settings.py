@@ -16,7 +16,13 @@ class Settings(BaseSettings):
     analysis_timeout_seconds: int = Field(30, env="ANALYSIS_TIMEOUT_SECONDS")
 
     news_sources: List[str] = Field(
-        default_factory=lambda: ["bloomberg", "reuters", "yahoo-finance", "marketwatch", "cnbc"],
+        default_factory=lambda: [
+            "bloomberg",
+            "reuters",
+            "yahoo-finance",
+            "marketwatch",
+            "cnbc",
+        ],
         env="NEWS_SOURCES",
     )
     analysis_depth: str = Field("detailed", env="ANALYSIS_DEPTH")

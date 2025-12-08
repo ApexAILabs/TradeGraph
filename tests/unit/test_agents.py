@@ -5,9 +5,16 @@ from datetime import datetime
 from tradegraph_financial_advisor.agents.base_agent import BaseAgent
 from tradegraph_financial_advisor.agents.news_agent import NewsReaderAgent
 from tradegraph_financial_advisor.agents.financial_agent import FinancialAnalysisAgent
-from tradegraph_financial_advisor.agents.report_analysis_agent import ReportAnalysisAgent
-from tradegraph_financial_advisor.agents.recommendation_engine import TradingRecommendationEngine
-from tradegraph_financial_advisor.models.financial_data import NewsArticle, SentimentType
+from tradegraph_financial_advisor.agents.report_analysis_agent import (
+    ReportAnalysisAgent,
+)
+from tradegraph_financial_advisor.agents.recommendation_engine import (
+    TradingRecommendationEngine,
+)
+from tradegraph_financial_advisor.models.financial_data import (
+    NewsArticle,
+    SentimentType,
+)
 
 
 class TestBaseAgent:
@@ -76,7 +83,9 @@ class TestNewsReaderAgent:
             assert not agent.is_active
 
     @pytest.mark.asyncio
-    async def test_execute_news_collection(self, mock_aiohttp_session, sample_news_articles):
+    async def test_execute_news_collection(
+        self, mock_aiohttp_session, sample_news_articles
+    ):
         """Test news collection execution."""
         agent = NewsReaderAgent()
 
@@ -109,12 +118,16 @@ class TestNewsReaderAgent:
         agent = NewsReaderAgent()
 
         # Test bullish sentiment
-        bullish_content = "Apple reports strong growth and profit gains with positive outlook"
+        bullish_content = (
+            "Apple reports strong growth and profit gains with positive outlook"
+        )
         sentiment = await agent._analyze_sentiment(bullish_content)
         assert sentiment == SentimentType.BULLISH
 
         # Test bearish sentiment
-        bearish_content = "Company faces loss and decline with negative weak performance"
+        bearish_content = (
+            "Company faces loss and decline with negative weak performance"
+        )
         sentiment = await agent._analyze_sentiment(bearish_content)
         assert sentiment == SentimentType.BEARISH
 
@@ -220,7 +233,9 @@ class TestReportAnalysisAgent:
         assert "report" in agent.description.lower()
 
     @pytest.mark.asyncio
-    async def test_execute_report_analysis(self, mock_local_scraping_service, mock_langchain_llm):
+    async def test_execute_report_analysis(
+        self, mock_local_scraping_service, mock_langchain_llm
+    ):
         """Test report analysis execution."""
         agent = ReportAnalysisAgent(scraping_service=mock_local_scraping_service)
         agent.llm = mock_langchain_llm
@@ -235,7 +250,11 @@ class TestReportAnalysisAgent:
 
         await agent.start()
 
-        input_data = {"symbols": ["AAPL"], "report_types": ["10-K"], "analysis_depth": "detailed"}
+        input_data = {
+            "symbols": ["AAPL"],
+            "report_types": ["10-K"],
+            "analysis_depth": "detailed",
+        }
 
         result = await agent.execute(input_data)
 
@@ -287,7 +306,9 @@ class TestTradingRecommendationEngine:
             await engine.stop()
 
     @pytest.mark.asyncio
-    async def test_fundamental_score_calculation(self, mock_langchain_llm, sample_financial_data):
+    async def test_fundamental_score_calculation(
+        self, mock_langchain_llm, sample_financial_data
+    ):
         """Test fundamental score calculation."""
         with patch(
             "tradegraph_financial_advisor.agents.recommendation_engine.ChatOpenAI",
@@ -298,7 +319,9 @@ class TestTradingRecommendationEngine:
             financials = sample_financial_data["AAPL"]
             report_analysis = {"financial_health_score": 8.5}
 
-            score = await engine._calculate_fundamental_score(financials, report_analysis)
+            score = await engine._calculate_fundamental_score(
+                financials, report_analysis
+            )
 
             assert 0.0 <= score <= 1.0
             assert score > 0.5  # Should be positive for good financials
@@ -382,9 +405,24 @@ class TestTradingRecommendationEngine:
 
             # Test different confidence and risk combinations
             test_cases = [
-                (0.9, RiskLevel.LOW, {"risk_tolerance": "aggressive"}, RecommendationType.BUY),
-                (0.5, RiskLevel.MEDIUM, {"risk_tolerance": "medium"}, RecommendationType.HOLD),
-                (0.3, RiskLevel.HIGH, {"risk_tolerance": "conservative"}, RecommendationType.SELL),
+                (
+                    0.9,
+                    RiskLevel.LOW,
+                    {"risk_tolerance": "aggressive"},
+                    RecommendationType.BUY,
+                ),
+                (
+                    0.5,
+                    RiskLevel.MEDIUM,
+                    {"risk_tolerance": "medium"},
+                    RecommendationType.HOLD,
+                ),
+                (
+                    0.3,
+                    RiskLevel.HIGH,
+                    {"risk_tolerance": "conservative"},
+                    RecommendationType.SELL,
+                ),
             ]
 
             for confidence, risk_level, risk_prefs, recommendation_type in test_cases:
@@ -402,14 +440,20 @@ class TestTradingRecommendationEngine:
         ):
             engine = TradingRecommendationEngine()
 
-            from tradegraph_financial_advisor.models.recommendations import RecommendationType
+            from tradegraph_financial_advisor.models.recommendations import (
+                RecommendationType,
+            )
 
             current_price = 195.0
             technical_data = {"resistance_level": 210.0, "support_level": 180.0}
             financials = {"pe_ratio": 25.0}
 
             target_price, stop_loss = await engine._calculate_price_targets(
-                "AAPL", current_price, RecommendationType.BUY, technical_data, financials
+                "AAPL",
+                current_price,
+                RecommendationType.BUY,
+                technical_data,
+                financials,
             )
 
             if target_price:

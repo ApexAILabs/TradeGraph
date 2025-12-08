@@ -5,6 +5,7 @@ from crawl4ai import AsyncWebCrawler
 from ..models.financial_data import NewsArticle
 from ..utils.helpers import generate_summary
 
+
 class LocalScrapingService:
     def __init__(self):
         self.crawler = AsyncWebCrawler()
@@ -40,7 +41,9 @@ class LocalScrapingService:
                                     )
                                     all_articles.append(article)
                             except Exception as e:
-                                logger.warning(f"Failed to scrape article {result['url']}: {e}")
+                                logger.warning(
+                                    f"Failed to scrape article {result['url']}: {e}"
+                                )
                 except Exception as e:
                     logger.error(f"Failed to search for news for symbol {symbol}: {e}")
         return all_articles
@@ -71,9 +74,13 @@ class LocalScrapingService:
                                     }
                                 )
                         except Exception as e:
-                            logger.warning(f"Failed to scrape report {result['href']}: {e}")
+                            logger.warning(
+                                f"Failed to scrape report {result['href']}: {e}"
+                            )
             except Exception as e:
-                logger.error(f"Failed to search for financial reports for symbol {company_symbol}: {e}")
+                logger.error(
+                    f"Failed to search for financial reports for symbol {company_symbol}: {e}"
+                )
         return filings
 
     async def start(self):
