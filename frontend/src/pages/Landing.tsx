@@ -12,20 +12,20 @@ import {
 
 const features = [
   {
-    name: 'AI-Powered Analysis',
-    description: 'Multi-agent AI system that analyzes news, technical indicators, and financial reports to provide comprehensive insights.',
+    name: 'Stocks + Crypto Coverage',
+    description: 'Analyze equities and tokens in the same workspace. TradeGraph automatically recognizes symbols like BTC, ETH, SOL, and routes them through the correct data pipelines.',
     icon: CpuChipIcon,
     gradient: 'from-blue-500 to-purple-600',
   },
   {
-    name: 'Real-time Market Data',
-    description: 'Live market data, technical analysis, and sentiment tracking with instant WebSocket updates.',
+    name: 'Database Memory Layer',
+    description: 'DuckDB stores price histories while Neo4j captures knowledge graph relationships from every article and filing the agents touch.',
     icon: BoltIcon,
     gradient: 'from-yellow-500 to-orange-600',
   },
   {
-    name: 'Smart Recommendations',
-    description: 'Intelligent buy/sell/hold recommendations with confidence scores, target prices, and risk assessment.',
+    name: 'AI-Powered Analysis',
+    description: 'Multi-agent workflows blend news scraping, SEC filings, market data, and sentiment analysis into one narrative.',
     icon: ChartBarIcon,
     gradient: 'from-green-500 to-teal-600',
   },
@@ -86,14 +86,14 @@ export function Landing() {
               transition={{ duration: 0.8 }}
             >
               <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
-                AI-Powered{' '}
+                One command center for{' '}
                 <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Financial Analysis
+                  stocks + crypto
                 </span>
               </h1>
               <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-                Make smarter investment decisions with our multi-agent AI system that analyzes market data,
-                news sentiment, and financial reports to provide comprehensive trading recommendations.
+                Run institutional-grade analysis on equities and digital assets with realtime news, DuckDB pricing,
+                Neo4j knowledge-graph context, and AI-generated trade recommendations.
               </p>
             </motion.div>
 
