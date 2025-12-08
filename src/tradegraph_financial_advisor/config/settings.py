@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     analysis_depth: str = Field("detailed", env="ANALYSIS_DEPTH")
     default_portfolio_size: float = Field(100000.0, env="DEFAULT_PORTFOLIO_SIZE")
 
+    # Database Configuration
+    neo4j_uri: str = Field("bolt://localhost:7687", env="NEO4J_URI")
+    neo4j_user: str = Field("neo4j", env="NEO4J_USER")
+    neo4j_password: str = Field("password", env="NEO4J_PASSWORD")
+    duckdb_path: str = Field("tradegraph.duckdb", env="DUCKDB_PATH")
+
     model_config = {"env_file": ".env", "case_sensitive": False}
 
     @classmethod
