@@ -8,6 +8,11 @@ from loguru import logger
 from .base_agent import BaseAgent
 from ..models.financial_data import CompanyFinancials, MarketData, TechnicalIndicators
 from ..config.settings import settings
+from ..services.market_data import (
+    MarketDataFeedConfig,
+    MarketDataWebSocketClient,
+    WebSocketFeedError,
+)
 
 
 class FinancialAnalysisAgent(BaseAgent):
@@ -18,16 +23,33 @@ class FinancialAnalysisAgent(BaseAgent):
             **kwargs,
         )
         self.session: Optional[aiohttp.ClientSession] = None
+        self.market_data_stream: Optional[MarketDataWebSocketClient] = None
 
     async def start(self) -> None:
         await super().start()
         self.session = aiohttp.ClientSession(
             timeout=aiohttp.ClientTimeout(total=settings.analysis_timeout_seconds)
         )
+        feed_config = MarketDataFeedConfig(
+            equity_provider=settings.default_equity_feed_provider,
+            crypto_provider=settings.default_crypto_feed_provider,
+            polygon_api_key=settings.polygon_api_key,
+            alpaca_api_key=settings.alpaca_api_key,
+            alpaca_api_secret=settings.alpaca_api_secret,
+            alpaca_feed=settings.alpaca_data_feed,
+            timeout_seconds=settings.websocket_timeout_seconds,
+        )
+        self.market_data_stream = MarketDataWebSocketClient(
+            session=self.session,
+            config=feed_config,
+        )
 
     async def stop(self) -> None:
         if self.session:
             await self.session.close()
+        if self.market_data_stream:
+            await self.market_data_stream.aclose()
+            self.market_data_stream = None
         await super().stop()
 
     async def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -35,6 +57,8 @@ class FinancialAnalysisAgent(BaseAgent):
         include_financials = input_data.get("include_financials", True)
         include_technical = input_data.get("include_technical", True)
         include_market_data = input_data.get("include_market_data", True)
+        asset_types = input_data.get("asset_types", {})  # symbol -> equity/crypto
+        feed_overrides = input_data.get("feed_overrides", {})  # symbol -> provider name
 
         logger.info(f"Analyzing financial data for symbols: {symbols}")
 
@@ -45,7 +69,11 @@ class FinancialAnalysisAgent(BaseAgent):
                 symbol_data = {}
 
                 if include_market_data:
-                    market_data = await self._get_market_data(symbol)
+                    asset_type = asset_types.get(symbol, "equity")
+                    feed_override = feed_overrides.get(symbol)
+                    market_data = await self._get_market_data(
+                        symbol, asset_type=asset_type, feed_override=feed_override
+                    )
                     symbol_data["market_data"] = (
                         market_data.dict() if market_data else None
                     )
@@ -73,32 +101,43 @@ class FinancialAnalysisAgent(BaseAgent):
             "analysis_timestamp": datetime.now().isoformat(),
         }
 
-    async def _get_market_data(self, symbol: str) -> Optional[MarketData]:
+    async def _get_market_data(
+        self, symbol: str, asset_type: str = "equity", feed_override: Optional[str] = None
+    ) -> Optional[MarketData]:
         try:
+            if not self.market_data_stream:
+                raise RuntimeError("Market data stream is not initialized. Did you call start()?")
+
+            trade = await self.market_data_stream.get_realtime_trade(
+                symbol, asset_type=asset_type, provider_override=feed_override
+            )
+
             ticker = yf.Ticker(symbol)
             info = ticker.info
-            history = ticker.history(period="1d")
-
-            if history.empty:
-                return None
-
-            latest = history.iloc[-1]
+            previous_close = info.get("previousClose")
+            change = trade.price - previous_close if previous_close else 0.0
+            change_percent = (
+                (change / previous_close) * 100 if previous_close else 0.0
+            )
 
             market_data = MarketData(
                 symbol=symbol,
-                current_price=float(latest["Close"]),
-                change=float(latest["Close"] - latest["Open"]),
-                change_percent=float(
-                    (latest["Close"] - latest["Open"]) / latest["Open"] * 100
-                ),
-                volume=int(latest["Volume"]),
+                current_price=float(trade.price),
+                change=float(change),
+                change_percent=float(change_percent),
+                volume=int(trade.size or 0),
                 market_cap=info.get("marketCap"),
                 pe_ratio=info.get("trailingPE"),
-                timestamp=datetime.now(),
+                timestamp=trade.timestamp,
+                provider=trade.provider,
+                feed_latency_ms=trade.latency_ms,
             )
 
             return market_data
 
+        except WebSocketFeedError as e:
+            logger.error(f"WebSocket feed error for {symbol}: {str(e)}")
+            return None
         except Exception as e:
             logger.error(f"Error fetching market data for {symbol}: {str(e)}")
             return None

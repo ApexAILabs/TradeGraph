@@ -1,6 +1,6 @@
 import pytest
-from unittest.mock import patch
-from datetime import datetime
+from unittest.mock import AsyncMock, patch
+from datetime import datetime, timezone
 
 from tradegraph_financial_advisor.agents.base_agent import BaseAgent
 from tradegraph_financial_advisor.agents.news_agent import NewsReaderAgent
@@ -15,6 +15,30 @@ from tradegraph_financial_advisor.models.financial_data import (
     NewsArticle,
     SentimentType,
 )
+from tradegraph_financial_advisor.services.market_data.streaming import RealtimeTrade
+
+
+@pytest.fixture
+def mock_realtime_trade():
+    return RealtimeTrade(
+        symbol="AAPL",
+        price=195.25,
+        size=150,
+        timestamp=datetime.now(timezone.utc),
+        provider="polygon",
+        raw={},
+    )
+
+
+@pytest.fixture
+def patch_market_data_client(mock_realtime_trade):
+    with patch(
+        "tradegraph_financial_advisor.agents.financial_agent.MarketDataWebSocketClient"
+    ) as mock_client_cls:
+        client_instance = mock_client_cls.return_value
+        client_instance.get_realtime_trade = AsyncMock(return_value=mock_realtime_trade)
+        client_instance.aclose = AsyncMock()
+        yield client_instance
 
 
 class TestBaseAgent:
@@ -169,7 +193,9 @@ class TestFinancialAnalysisAgent:
         assert "financial" in agent.description.lower()
 
     @pytest.mark.asyncio
-    async def test_execute_financial_analysis(self, mock_yfinance_ticker):
+    async def test_execute_financial_analysis(
+        self, mock_yfinance_ticker, patch_market_data_client
+    ):
         """Test financial analysis execution."""
         agent = FinancialAnalysisAgent()
 
@@ -196,12 +222,16 @@ class TestFinancialAnalysisAgent:
             await agent.stop()
 
     @pytest.mark.asyncio
-    async def test_market_data_extraction(self, mock_yfinance_ticker):
+    async def test_market_data_extraction(
+        self, mock_yfinance_ticker, patch_market_data_client
+    ):
         """Test market data extraction."""
         agent = FinancialAnalysisAgent()
 
         with patch("yfinance.Ticker", return_value=mock_yfinance_ticker):
+            await agent.start()
             market_data = await agent._get_market_data("AAPL")
+            await agent.stop()
 
             assert market_data is not None
             assert market_data.symbol == "AAPL"

@@ -177,6 +177,8 @@ class MarketDataResponse(BaseModel):
     market_cap: Optional[float] = None
     pe_ratio: Optional[float] = None
     timestamp: datetime
+    provider: Optional[str] = None
+    feed_latency_ms: Optional[float] = None
 
 
 class TechnicalIndicatorsResponse(BaseModel):

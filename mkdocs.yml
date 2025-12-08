@@ -84,6 +84,7 @@ nav:
     - Python API: user-guide/python-api.md
     - Web Interface: user-guide/web-interface.md
     - Analysis Types: user-guide/analysis-types.md
+    - WebSocket Feeds: user-guide/websocket-feeds.md
   - API Reference:
     - Core Classes: api-reference/core.md
     - Agents: api-reference/agents.md
