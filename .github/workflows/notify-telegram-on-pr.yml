@@ -2,16 +2,21 @@ name: Notify Telegram on PR
 
 on:
   pull_request:
-    types: [opened, reopened, ready_for_review]
+    # Trigger on opened, reopened, ready_for_review AND closed
+    types: [opened, reopened, ready_for_review, closed]
 
 jobs:
   notify:
     runs-on: ubuntu-latest
-    # Skip if secrets are missing (e.g., forked PRs)
     if: ${{ secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != '' }}
 
     steps:
-      - name: Send Telegram message
+      # ----------------------------------------------------------------
+      # 1. NOTIFY ON NEW / UPDATED PR
+      # ----------------------------------------------------------------
+      - name: Send Telegram (New PR)
+        # Run only if the PR is NOT closed
+        if: github.event.action != 'closed'
         env:
           TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -24,30 +29,83 @@ jobs:
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
           set -euo pipefail
-
           API_URL="https://api.telegram.org/bot${TG_TOKEN}/sendMessage"
 
           MSG="\<b\>New Pull Request\</b\>
-Repo: \<code\>${REPO}\</code\>
-By: \<b\>${ACTOR}\</b\>
-PR: \<b\>#${PR_NUM}\</b\> — ${PR_TITLE}
-Branch: \<code\>${HEAD_BRANCH}\</code\> → \<code\>${BASE_BRANCH}\</code\>
-Link: ${PR_URL}"
+          Repo: \<code\>${REPO}\</code\>
+          By: \<b\>${ACTOR}\</b\>
+          PR: \<b\>#${PR_NUM}\</b\> — ${PR_TITLE}
+          Branch: \<code\>${HEAD_BRANCH}\</code\> → \<code\>${BASE_BRANCH}\</code\>
+          Link: ${PR_URL}"
 
-          # Show short debug (lengths only; won’t leak secrets)
-          echo "Token length: ${#TG_TOKEN}, Chat ID: ${CHAT_ID}"
-
-          # Send and capture HTTP code + body
-          HTTP_CODE=$(curl -sS -w "%{http_code}" -o /tmp/resp.json "$API_URL" \
+          curl -sS -X POST "$API_URL" \
             -d "chat_id=${CHAT_ID}" \
             -d "parse_mode=HTML" \
             -d "disable_web_page_preview=true" \
-            --data-urlencode "text=${MSG}")
+            --data-urlencode "text=${MSG}"
 
-          echo "Telegram response:"
-          cat /tmp/resp.json
-          echo
-          echo "HTTP ${HTTP_CODE}"
+      # ----------------------------------------------------------------
+      # 2. NOTIFY ON MERGE SUCCESS
+      # ----------------------------------------------------------------
+      - name: Send Telegram (Merge Successful)
+        # Run only if the PR is Closed AND Merged
+        if: github.event.action == 'closed' && github.event.pull_request.merged == true
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.actor }}
+          PR_NUM: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          API_URL="https://api.telegram.org/bot${TG_TOKEN}/sendMessage"
 
-          # Fail if Telegram didn’t return 200
-          [ "$HTTP_CODE" = "200" ] || exit 1
+          MSG="\<b\>💜 Merge Successful\</b\>
+          Repo: \<code\>${REPO}\</code\>
+          By: \<b\>${ACTOR}\</b\>
+          PR: \<b\>#${PR_NUM}\</b\> — ${PR_TITLE}
+          
+          Branch: \<code\>${HEAD_BRANCH}\</code\> → \<code\>${BASE_BRANCH}\</code\>
+          
+          Link: ${PR_URL}"
+
+          curl -sS -X POST "$API_URL" \
+            -d "chat_id=${CHAT_ID}" \
+            -d "parse_mode=HTML" \
+            -d "disable_web_page_preview=true" \
+            --data-urlencode "text=${MSG}"
+
+      # ----------------------------------------------------------------
+      # 3. NOTIFY ON FAILURE
+      # ----------------------------------------------------------------
+      - name: Notify Telegram on Failure
+        # Run only if a previous step failed
+        if: failure()
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.actor }}
+          PR_NUM: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          API_URL="https://api.telegram.org/bot${TG_TOKEN}/sendMessage"
+
+          MSG="\<b\>❌ Action Failed\</b\>
+          Repo: \<code\>${REPO}\</code\>
+          PR: \<b\>#${PR_NUM}\</b\> — ${PR_TITLE}
+          By: ${ACTOR}
+          
+          👉 \<a href=\"${RUN_URL}\"\>View Error Logs\</a\>"
+
+          curl -sS -X POST "$API_URL" \
+            -d "chat_id=${CHAT_ID}" \
+            -d "parse_mode=HTML" \
+            -d "disable_web_page_preview=true" \
+            --data-urlencode "text=${MSG}"
