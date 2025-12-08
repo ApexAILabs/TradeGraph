@@ -5,21 +5,25 @@ Advanced usage examples for TradeGraph Financial Advisor
 
 import asyncio
 import json
-from datetime import datetime, timedelta
-from typing import List, Dict, Any
+from datetime import datetime
 
 from tradegraph_financial_advisor import FinancialAdvisor
-from tradegraph_financial_advisor.workflows.analysis_workflow import FinancialAnalysisWorkflow
+from tradegraph_financial_advisor.workflows.analysis_workflow import (
+    FinancialAnalysisWorkflow,
+)
 from tradegraph_financial_advisor.agents.news_agent import NewsReaderAgent
 from tradegraph_financial_advisor.agents.financial_agent import FinancialAnalysisAgent
-from tradegraph_financial_advisor.agents.report_analysis_agent import ReportAnalysisAgent
-from tradegraph_financial_advisor.agents.recommendation_engine import TradingRecommendationEngine
-from tradegraph_financial_advisor.services.firecrawl_service import FirecrawlService
+from tradegraph_financial_advisor.agents.report_analysis_agent import (
+    ReportAnalysisAgent,
+)
+from tradegraph_financial_advisor.agents.recommendation_engine import (
+    TradingRecommendationEngine,
+)
 from tradegraph_financial_advisor.utils.helpers import (
     save_analysis_results,
     load_analysis_results,
     calculate_portfolio_metrics,
-    PerformanceTimer
+    PerformanceTimer,
 )
 
 
@@ -45,11 +49,7 @@ async def individual_agents_example():
 
         # 1. Collect news data
         print("📰 Collecting news data...")
-        news_input = {
-            "symbols": symbols,
-            "timeframe_hours": 48,
-            "max_articles": 20
-        }
+        news_input = {"symbols": symbols, "timeframe_hours": 48, "max_articles": 20}
         news_results = await news_agent.execute(news_input)
         print(f"Found {news_results.get('total_count', 0)} news articles")
 
@@ -59,7 +59,7 @@ async def individual_agents_example():
             "symbols": symbols,
             "include_financials": True,
             "include_technical": True,
-            "include_market_data": True
+            "include_market_data": True,
         }
         financial_results = await financial_agent.execute(financial_input)
         print("Financial analysis completed")
@@ -69,7 +69,7 @@ async def individual_agents_example():
         report_input = {
             "symbols": symbols,
             "report_types": ["10-K"],
-            "analysis_depth": "standard"
+            "analysis_depth": "standard",
         }
         report_results = await report_agent.execute(report_input)
         print("Report analysis completed")
@@ -79,7 +79,7 @@ async def individual_agents_example():
             "news_analysis": news_results,
             "financial_analysis": financial_results,
             "report_analysis": report_results,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
         return combined_results
@@ -115,7 +115,7 @@ async def custom_workflow_example():
             symbols=symbols,
             portfolio_size=150000,
             risk_tolerance="aggressive",
-            time_horizon="short_term"
+            time_horizon="short_term",
         )
 
         # Enhance with custom recommendation logic
@@ -132,11 +132,13 @@ async def custom_workflow_example():
 
         # Generate enhanced recommendations
         await recommendation_engine.start()
-        enhanced_results = await recommendation_engine.execute({
-            "analysis_contexts": analysis_contexts,
-            "portfolio_constraints": {"portfolio_size": 150000, "max_positions": 5},
-            "risk_preferences": {"risk_tolerance": "aggressive"}
-        })
+        enhanced_results = await recommendation_engine.execute(
+            {
+                "analysis_contexts": analysis_contexts,
+                "portfolio_constraints": {"portfolio_size": 150000, "max_positions": 5},
+                "risk_preferences": {"risk_tolerance": "aggressive"},
+            }
+        )
         await recommendation_engine.stop()
 
         combined_results = {
@@ -144,8 +146,11 @@ async def custom_workflow_example():
             "enhanced_recommendations": enhanced_results,
             "custom_workflow_metadata": {
                 "workflow_type": "custom_enhanced",
-                "enhancement_features": ["custom_risk_analysis", "enhanced_position_sizing"]
-            }
+                "enhancement_features": [
+                    "custom_risk_analysis",
+                    "enhanced_position_sizing",
+                ],
+            },
         }
 
         return combined_results
@@ -153,70 +158,6 @@ async def custom_workflow_example():
     except Exception as e:
         print(f"❌ Custom workflow example failed: {str(e)}")
         return None
-
-
-async def firecrawl_integration_example():
-    """
-    Example: Advanced Firecrawl usage for custom data collection
-    """
-    print("🔥 Advanced Firecrawl Integration Example")
-    print("=" * 50)
-
-    firecrawl_service = FirecrawlService()
-
-    try:
-        await firecrawl_service.start()
-
-        # 1. Scrape specific financial websites
-        print("Scraping financial news websites...")
-        symbols = ["AAPL"]
-
-        news_articles = await firecrawl_service.scrape_news_websites(
-            symbols=symbols,
-            max_articles_per_source=5
-        )
-
-        print(f"Scraped {len(news_articles)} articles from financial websites")
-
-        # 2. Scrape SEC filings
-        print("Scraping SEC filings...")
-        sec_filings = await firecrawl_service.scrape_financial_reports(
-            company_symbol="AAPL",
-            report_type="10-K"
-        )
-
-        print(f"Found {len(sec_filings)} SEC filings")
-
-        # 3. Custom URL scraping
-        print("Scraping custom financial URLs...")
-        custom_urls = [
-            "https://www.sec.gov/cgi-bin/browse-edgar?CIK=AAPL&type=10-K&dateb=&owner=include&count=5"
-        ]
-
-        custom_results = await firecrawl_service.scrape_multiple_urls(
-            urls=custom_urls,
-            options={"onlyMainContent": True, "includeTags": ["div", "p", "table"]}
-        )
-
-        results = {
-            "news_articles": [article.dict() for article in news_articles],
-            "sec_filings": sec_filings,
-            "custom_scraping": custom_results,
-            "scraping_metadata": {
-                "total_articles": len(news_articles),
-                "total_filings": len(sec_filings),
-                "total_custom_pages": len(custom_results)
-            }
-        }
-
-        return results
-
-    except Exception as e:
-        print(f"❌ Firecrawl integration example failed: {str(e)}")
-        return None
-
-    finally:
-        await firecrawl_service.stop()
 
 
 async def portfolio_optimization_example():
@@ -234,20 +175,20 @@ async def portfolio_optimization_example():
             "symbols": ["TSLA", "NVDA", "AMD", "SQ", "PLTR"],
             "portfolio_size": 100000,
             "risk_tolerance": "aggressive",
-            "time_horizon": "medium_term"
+            "time_horizon": "medium_term",
         },
         "value_portfolio": {
             "symbols": ["BRK-B", "JPM", "JNJ", "PG", "WMT"],
             "portfolio_size": 100000,
             "risk_tolerance": "conservative",
-            "time_horizon": "long_term"
+            "time_horizon": "long_term",
         },
         "tech_portfolio": {
             "symbols": ["AAPL", "MSFT", "GOOGL", "AMZN", "META"],
             "portfolio_size": 100000,
             "risk_tolerance": "medium",
-            "time_horizon": "medium_term"
-        }
+            "time_horizon": "medium_term",
+        },
     }
 
     optimization_results = {}
@@ -262,16 +203,24 @@ async def portfolio_optimization_example():
                 # Calculate additional metrics
                 portfolio_rec = results.get("portfolio_recommendation")
                 if portfolio_rec and portfolio_rec.get("recommendations"):
-                    metrics = calculate_portfolio_metrics(portfolio_rec["recommendations"])
+                    metrics = calculate_portfolio_metrics(
+                        portfolio_rec["recommendations"]
+                    )
                     results["portfolio_metrics"] = metrics
 
                 optimization_results[scenario_name] = results
 
                 # Print summary
                 if portfolio_rec:
-                    print(f"  ✅ {scenario_name}: {len(portfolio_rec['recommendations'])} recommendations")
-                    print(f"     Confidence: {portfolio_rec.get('total_confidence', 0):.1%}")
-                    print(f"     Risk Level: {portfolio_rec.get('overall_risk_level', 'unknown')}")
+                    print(
+                        f"  ✅ {scenario_name}: {len(portfolio_rec['recommendations'])} recommendations"
+                    )
+                    print(
+                        f"     Confidence: {portfolio_rec.get('total_confidence', 0):.1%}"
+                    )
+                    print(
+                        f"     Risk Level: {portfolio_rec.get('overall_risk_level', 'unknown')}"
+                    )
 
         except Exception as e:
             print(f"  ❌ {scenario_name} optimization failed: {str(e)}")
@@ -282,7 +231,9 @@ async def portfolio_optimization_example():
         portfolio_rec = results.get("portfolio_recommendation", {})
         confidence = portfolio_rec.get("total_confidence", 0)
         risk = portfolio_rec.get("overall_risk_level", "unknown")
-        print(f"  {scenario_name:20} | Confidence: {confidence:>6.1%} | Risk: {risk:>12}")
+        print(
+            f"  {scenario_name:20} | Confidence: {confidence:>6.1%} | Risk: {risk:>12}"
+        )
 
     return optimization_results
 
@@ -302,7 +253,7 @@ async def real_time_monitoring_example():
     monitoring_results = {
         "monitoring_start": datetime.now().isoformat(),
         "portfolio_symbols": portfolio_symbols,
-        "monitoring_cycles": []
+        "monitoring_cycles": [],
     }
 
     print(f"Monitoring portfolio: {', '.join(portfolio_symbols)}")
@@ -319,8 +270,7 @@ async def real_time_monitoring_example():
 
             # Quick analysis for current state
             quick_analysis = await advisor.quick_analysis(
-                symbols=portfolio_symbols,
-                analysis_type="basic"
+                symbols=portfolio_symbols, analysis_type="basic"
             )
 
             cycle_data = {
@@ -328,7 +278,7 @@ async def real_time_monitoring_example():
                 "timestamp": cycle_start.isoformat(),
                 "alerts": alerts,
                 "quick_analysis": quick_analysis,
-                "cycle_duration": (datetime.now() - cycle_start).total_seconds()
+                "cycle_duration": (datetime.now() - cycle_start).total_seconds(),
             }
 
             monitoring_results["monitoring_cycles"].append(cycle_data)
@@ -336,8 +286,11 @@ async def real_time_monitoring_example():
             # Print cycle summary
             print(f"  Alerts generated: {len(alerts)}")
             if quick_analysis.get("recommendations"):
-                buy_signals = sum(1 for rec in quick_analysis["recommendations"]
-                                if rec.get("recommendation") in ["buy", "strong_buy"])
+                buy_signals = sum(
+                    1
+                    for rec in quick_analysis["recommendations"]
+                    if rec.get("recommendation") in ["buy", "strong_buy"]
+                )
                 print(f"  Buy signals: {buy_signals}/{len(portfolio_symbols)}")
 
         except Exception as e:
@@ -350,11 +303,13 @@ async def real_time_monitoring_example():
 
     monitoring_results["monitoring_end"] = datetime.now().isoformat()
     monitoring_results["total_duration"] = (
-        datetime.fromisoformat(monitoring_results["monitoring_end"]) -
-        datetime.fromisoformat(monitoring_results["monitoring_start"])
+        datetime.fromisoformat(monitoring_results["monitoring_end"])
+        - datetime.fromisoformat(monitoring_results["monitoring_start"])
     ).total_seconds()
 
-    print(f"\n✅ Monitoring completed in {monitoring_results['total_duration']:.1f} seconds")
+    print(
+        f"\n✅ Monitoring completed in {monitoring_results['total_duration']:.1f} seconds"
+    )
 
     return monitoring_results
 
@@ -374,9 +329,7 @@ async def data_export_import_example():
         # 1. Generate analysis
         print("Generating analysis for export...")
         results = await advisor.analyze_portfolio(
-            symbols=symbols,
-            portfolio_size=75000,
-            risk_tolerance="medium"
+            symbols=symbols, portfolio_size=75000, risk_tolerance="medium"
         )
 
         # 2. Save results to file
@@ -389,8 +342,12 @@ async def data_export_import_example():
         loaded_results = load_analysis_results(saved_file)
 
         # 4. Verify data integrity
-        original_timestamp = results.get("analysis_summary", {}).get("analysis_timestamp")
-        loaded_timestamp = loaded_results.get("analysis_summary", {}).get("analysis_timestamp")
+        original_timestamp = results.get("analysis_summary", {}).get(
+            "analysis_timestamp"
+        )
+        loaded_timestamp = loaded_results.get("analysis_summary", {}).get(
+            "analysis_timestamp"
+        )
 
         if original_timestamp == loaded_timestamp:
             print("✅ Data integrity verified - timestamps match")
@@ -403,30 +360,34 @@ async def data_export_import_example():
             "export_metadata": {
                 "export_time": datetime.now().isoformat(),
                 "export_format": "tradegraph_v1",
-                "symbols": symbols
+                "symbols": symbols,
             },
             "recommendations_summary": [],
-            "portfolio_metrics": {}
+            "portfolio_metrics": {},
         }
 
         # Extract key information
         portfolio_rec = loaded_results.get("portfolio_recommendation", {})
         if portfolio_rec.get("recommendations"):
             for rec in portfolio_rec["recommendations"]:
-                custom_export["recommendations_summary"].append({
-                    "symbol": rec.get("symbol"),
-                    "action": rec.get("recommendation"),
-                    "confidence": rec.get("confidence_score"),
-                    "allocation": rec.get("recommended_allocation")
-                })
+                custom_export["recommendations_summary"].append(
+                    {
+                        "symbol": rec.get("symbol"),
+                        "action": rec.get("recommendation"),
+                        "confidence": rec.get("confidence_score"),
+                        "allocation": rec.get("recommended_allocation"),
+                    }
+                )
 
         custom_export["portfolio_metrics"] = calculate_portfolio_metrics(
             portfolio_rec.get("recommendations", [])
         )
 
         # Save custom export
-        custom_filename = f"custom_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(f"results/{custom_filename}", 'w') as f:
+        custom_filename = (
+            f"custom_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        )
+        with open(f"results/{custom_filename}", "w") as f:
             json.dump(custom_export, f, indent=2, default=str)
 
         print(f"Custom export saved to: results/{custom_filename}")
@@ -435,7 +396,7 @@ async def data_export_import_example():
             "original_results": results,
             "loaded_results": loaded_results,
             "custom_export": custom_export,
-            "files_created": [saved_file, f"results/{custom_filename}"]
+            "files_created": [saved_file, f"results/{custom_filename}"],
         }
 
     except Exception as e:
@@ -457,18 +418,14 @@ async def error_handling_example():
         {
             "name": "Invalid Symbols",
             "symbols": ["INVALID", "BADTICKER", "NOTREAL"],
-            "should_fail": True
+            "should_fail": True,
         },
-        {
-            "name": "Valid Symbols",
-            "symbols": ["AAPL", "MSFT"],
-            "should_fail": False
-        },
+        {"name": "Valid Symbols", "symbols": ["AAPL", "MSFT"], "should_fail": False},
         {
             "name": "Mixed Valid/Invalid",
             "symbols": ["AAPL", "INVALID", "MSFT"],
-            "should_fail": False  # Should handle gracefully
-        }
+            "should_fail": False,  # Should handle gracefully
+        },
     ]
 
     error_handling_results = {}
@@ -484,8 +441,7 @@ async def error_handling_example():
         try:
             # Try quick analysis (more likely to succeed even with some invalid symbols)
             results = await advisor.quick_analysis(
-                symbols=symbols,
-                analysis_type="basic"
+                symbols=symbols, analysis_type="basic"
             )
 
             if should_fail:
@@ -498,7 +454,7 @@ async def error_handling_example():
             error_handling_results[scenario_name] = {
                 "status": status,
                 "results": results,
-                "error": None
+                "error": None,
             }
 
         except Exception as e:
@@ -512,11 +468,11 @@ async def error_handling_example():
             error_handling_results[scenario_name] = {
                 "status": status,
                 "results": None,
-                "error": str(e)
+                "error": str(e),
             }
 
     # Summary
-    print(f"\n📊 Error Handling Summary:")
+    print("\n📊 Error Handling Summary:")
     for scenario_name, result in error_handling_results.items():
         status = result["status"]
         print(f"   {scenario_name:20} | Status: {status}")
@@ -535,7 +491,6 @@ async def main():
     examples = [
         ("Individual Agents Usage", individual_agents_example),
         ("Custom Workflow Creation", custom_workflow_example),
-        ("Advanced Firecrawl Integration", firecrawl_integration_example),
         ("Portfolio Optimization", portfolio_optimization_example),
         ("Real-time Monitoring", real_time_monitoring_example),
         ("Data Export/Import", data_export_import_example),
@@ -573,14 +528,14 @@ async def main():
             "session_metadata": {
                 "session_start": datetime.now().isoformat(),
                 "examples_run": list(all_results.keys()),
-                "total_examples": len(examples)
+                "total_examples": len(examples),
             },
-            "example_results": all_results
+            "example_results": all_results,
         }
 
         results_file = save_analysis_results(
             comprehensive_results,
-            f"advanced_examples_session_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            f"advanced_examples_session_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
         )
         print(f"📁 Comprehensive results saved to: {results_file}")
 
@@ -590,7 +545,6 @@ async def main():
     print("\n🎓 Advanced Examples Complete!")
     print("These examples demonstrate:")
     print("- Using individual agents for custom workflows")
-    print("- Advanced Firecrawl integration")
     print("- Portfolio optimization strategies")
     print("- Real-time monitoring capabilities")
     print("- Data persistence and export features")

@@ -17,5 +17,5 @@ __all__ = [
     "FinancialAdvisor",
     "Settings",
     "TradingRecommendation",
-    "RecommendationType"
+    "RecommendationType",
 ]

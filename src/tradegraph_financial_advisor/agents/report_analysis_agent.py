@@ -1,38 +1,39 @@
-import asyncio
 import json
 from typing import Any, Dict, List, Optional
-from datetime import datetime, timedelta
-import aiohttp
+from datetime import datetime
 from loguru import logger
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 
 from .base_agent import BaseAgent
-from ..services.firecrawl_service import FirecrawlService
-from ..models.financial_data import CompanyFinancials
+from ..services.local_scraping_service import LocalScrapingService
 from ..config.settings import settings
 
 
 class ReportAnalysisAgent(BaseAgent):
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        scraping_service: Optional[LocalScrapingService] = None,
+        llm_model_name: str = "gpt-5-nano",
+        **kwargs,
+    ):
         super().__init__(
             name="ReportAnalysisAgent",
             description="Analyzes company financial reports and SEC filings for deep fundamental analysis",
-            **kwargs
+            **kwargs,
         )
-        self.firecrawl_service = FirecrawlService()
+        self.local_scraping_service = scraping_service or LocalScrapingService()
+        self.llm_model_name = llm_model_name
         self.llm = ChatOpenAI(
-            model="gpt-4",
-            temperature=0.1,
-            api_key=settings.openai_api_key
+            model=self.llm_model_name, temperature=0.1, api_key=settings.openai_api_key
         )
 
     async def start(self) -> None:
         await super().start()
-        await self.firecrawl_service.start()
+        await self.local_scraping_service.start()
 
     async def stop(self) -> None:
-        await self.firecrawl_service.stop()
+        await self.local_scraping_service.stop()
         await super().stop()
 
     async def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -57,14 +58,11 @@ class ReportAnalysisAgent(BaseAgent):
 
         return {
             "report_analysis": results,
-            "analysis_timestamp": datetime.now().isoformat()
+            "analysis_timestamp": datetime.now().isoformat(),
         }
 
     async def _analyze_company_reports(
-        self,
-        symbol: str,
-        report_types: List[str],
-        analysis_depth: str
+        self, symbol: str, report_types: List[str], analysis_depth: str
     ) -> Dict[str, Any]:
         try:
             analysis_results = {
@@ -75,13 +73,13 @@ class ReportAnalysisAgent(BaseAgent):
                 "risk_factors": [],
                 "growth_prospects": [],
                 "competitive_position": "",
-                "financial_health_score": 0.0
+                "financial_health_score": 0.0,
             }
 
             # Scrape and analyze each report type
             for report_type in report_types:
                 try:
-                    filings = await self.firecrawl_service.scrape_financial_reports(
+                    filings = await self.local_scraping_service.search_and_scrape_financial_reports(
                         symbol, report_type
                     )
 
@@ -92,7 +90,9 @@ class ReportAnalysisAgent(BaseAgent):
                         analysis_results["report_analyses"].append(report_analysis)
 
                 except Exception as e:
-                    logger.warning(f"Failed to analyze {report_type} for {symbol}: {str(e)}")
+                    logger.warning(
+                        f"Failed to analyze {report_type} for {symbol}: {str(e)}"
+                    )
 
             # Generate comprehensive analysis summary
             if analysis_results["report_analyses"]:
@@ -108,11 +108,7 @@ class ReportAnalysisAgent(BaseAgent):
             return {"error": str(e)}
 
     async def _analyze_single_report(
-        self,
-        symbol: str,
-        filing: Dict[str, Any],
-        report_type: str,
-        analysis_depth: str
+        self, symbol: str, filing: Dict[str, Any], report_type: str, analysis_depth: str
     ) -> Dict[str, Any]:
         try:
             content = filing.get("content", "")
@@ -180,7 +176,6 @@ class ReportAnalysisAgent(BaseAgent):
             response = await self.llm.ainvoke([HumanMessage(content=analysis_prompt)])
 
             try:
-                import json
                 analysis_data = json.loads(response.content)
                 analysis_data["report_type"] = report_type
                 analysis_data["filing_url"] = filing.get("url", "")
@@ -192,7 +187,7 @@ class ReportAnalysisAgent(BaseAgent):
                 return {
                     "error": "Failed to parse analysis",
                     "raw_response": response.content[:500],
-                    "report_type": report_type
+                    "report_type": report_type,
                 }
 
         except Exception as e:
@@ -200,9 +195,7 @@ class ReportAnalysisAgent(BaseAgent):
             return {"error": str(e), "report_type": report_type}
 
     async def _generate_comprehensive_summary(
-        self,
-        symbol: str,
-        report_analyses: List[Dict[str, Any]]
+        self, symbol: str, report_analyses: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         try:
             # Combine all analyses for comprehensive view
@@ -242,35 +235,38 @@ class ReportAnalysisAgent(BaseAgent):
             }}
             """
 
-            response = await self.llm.ainvoke([HumanMessage(content=combined_analysis_prompt)])
+            response = await self.llm.ainvoke(
+                [HumanMessage(content=combined_analysis_prompt)]
+            )
 
             try:
-                import json
                 summary_data = json.loads(response.content)
                 return summary_data
 
             except json.JSONDecodeError as e:
-                logger.warning(f"Failed to parse comprehensive summary for {symbol}: {str(e)}")
+                logger.warning(
+                    f"Failed to parse comprehensive summary for {symbol}: {str(e)}"
+                )
                 return {
                     "executive_summary": "Analysis completed but summary parsing failed",
                     "financial_health_score": 5.0,
                     "key_metrics": {},
                     "risk_factors": [],
-                    "growth_prospects": []
+                    "growth_prospects": [],
                 }
 
         except Exception as e:
-            logger.error(f"Error generating comprehensive summary for {symbol}: {str(e)}")
+            logger.error(
+                f"Error generating comprehensive summary for {symbol}: {str(e)}"
+            )
             return {
                 "error": str(e),
                 "executive_summary": "Failed to generate summary",
-                "financial_health_score": 0.0
+                "financial_health_score": 0.0,
             }
 
     async def analyze_earnings_calls(
-        self,
-        symbol: str,
-        quarters: int = 4
+        self, symbol: str, quarters: int = 4
     ) -> Dict[str, Any]:
         try:
             # Search for earnings call transcripts
@@ -278,7 +274,7 @@ class ReportAnalysisAgent(BaseAgent):
                 f"{symbol} earnings call transcript Q1 2024",
                 f"{symbol} earnings call transcript Q2 2024",
                 f"{symbol} earnings call transcript Q3 2024",
-                f"{symbol} earnings call transcript Q4 2024"
+                f"{symbol} earnings call transcript Q4 2024",
             ]
 
             earnings_analyses = []
@@ -286,31 +282,33 @@ class ReportAnalysisAgent(BaseAgent):
             for query in search_queries[:quarters]:
                 try:
                     # Use web search or specific financial sites
-                    search_url = f"https://www.google.com/search?q={query.replace(' ', '+')}"
-
                     # This would typically use a more sophisticated search
                     # For demo purposes, showing the structure
 
                     earnings_analysis = {
-                        "quarter": query.split("Q")[1][:1] if "Q" in query else "Unknown",
+                        "quarter": (
+                            query.split("Q")[1][:1] if "Q" in query else "Unknown"
+                        ),
                         "year": "2024",
                         "management_tone": "confident/cautious/concerned",
                         "key_themes": [],
                         "guidance_changes": [],
-                        "analyst_sentiment": "positive/neutral/negative"
+                        "analyst_sentiment": "positive/neutral/negative",
                     }
 
                     earnings_analyses.append(earnings_analysis)
 
                 except Exception as e:
-                    logger.warning(f"Failed to analyze earnings call for query {query}: {str(e)}")
+                    logger.warning(
+                        f"Failed to analyze earnings call for query {query}: {str(e)}"
+                    )
 
             return {
                 "symbol": symbol,
                 "earnings_call_analyses": earnings_analyses,
                 "overall_management_sentiment": "positive",  # Would be calculated
                 "guidance_trends": [],
-                "key_investor_concerns": []
+                "key_investor_concerns": [],
             }
 
         except Exception as e:
@@ -318,16 +316,20 @@ class ReportAnalysisAgent(BaseAgent):
             return {"error": str(e)}
 
     async def _health_check_impl(self) -> None:
-        # Test Firecrawl service
-        health_ok = await self.firecrawl_service.health_check()
+        # Test LocalScrapingService
+        health_ok = await self.local_scraping_service.health_check()
         if not health_ok:
-            raise Exception("Firecrawl service health check failed")
+            raise Exception("Local scraping service health check failed")
 
         # Test LLM
         try:
-            test_response = await self.llm.ainvoke([
-                HumanMessage(content="Respond with 'OK' if you can process this message.")
-            ])
+            test_response = await self.llm.ainvoke(
+                [
+                    HumanMessage(
+                        content="Respond with 'OK' if you can process this message."
+                    )
+                ]
+            )
             if "OK" not in test_response.content:
                 raise Exception("LLM health check failed")
         except Exception as e:

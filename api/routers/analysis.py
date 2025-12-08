@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Optional
 
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from fastapi.responses import StreamingResponse
@@ -12,8 +12,6 @@ from ..models import (
     QuickAnalysisRequest,
     AnalysisResult,
     AnalysisStatus,
-    RecommendationResponse,
-    PortfolioResponse,
 )
 
 from ..auth.dependencies import get_current_user

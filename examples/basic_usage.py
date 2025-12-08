@@ -28,7 +28,7 @@ async def basic_analysis_example():
             portfolio_size=100000,  # $100k portfolio
             risk_tolerance="medium",
             time_horizon="medium_term",
-            include_reports=False  # Skip SEC filings for faster analysis
+            include_reports=False,  # Skip SEC filings for faster analysis
         )
 
         # Print results to console
@@ -37,7 +37,7 @@ async def basic_analysis_example():
         # You can also access individual components:
         portfolio_rec = results.get("portfolio_recommendation")
         if portfolio_rec:
-            print(f"\n📊 Portfolio Summary:")
+            print("\n📊 Portfolio Summary:")
             print(f"Total Confidence: {portfolio_rec['total_confidence']:.1%}")
             print(f"Number of Recommendations: {len(portfolio_rec['recommendations'])}")
 
@@ -62,10 +62,7 @@ async def quick_analysis_example():
     symbols = ["TSLA", "NVDA", "AMD"]
 
     try:
-        results = await advisor.quick_analysis(
-            symbols=symbols,
-            analysis_type="basic"
-        )
+        results = await advisor.quick_analysis(symbols=symbols, analysis_type="basic")
 
         print(f"Quick analysis completed for: {', '.join(symbols)}")
 
@@ -125,7 +122,7 @@ async def portfolio_comparison_example():
     portfolios = {
         "Tech Focus": ["AAPL", "MSFT", "GOOGL", "NVDA"],
         "Diversified": ["AAPL", "JPM", "JNJ", "XOM"],
-        "Growth": ["TSLA", "NVDA", "AMD", "SQ"]
+        "Growth": ["TSLA", "NVDA", "AMD", "SQ"],
     }
 
     results = {}
@@ -135,17 +132,21 @@ async def portfolio_comparison_example():
 
         try:
             result = await advisor.quick_analysis(
-                symbols=symbols,
-                analysis_type="standard"
+                symbols=symbols, analysis_type="standard"
             )
 
             results[portfolio_name] = result
 
             # Quick summary
             if "recommendations" in result:
-                buy_count = sum(1 for rec in result["recommendations"]
-                              if rec.get("recommendation") in ["buy", "strong_buy"])
-                print(f"  {portfolio_name}: {buy_count}/{len(symbols)} BUY recommendations")
+                buy_count = sum(
+                    1
+                    for rec in result["recommendations"]
+                    if rec.get("recommendation") in ["buy", "strong_buy"]
+                )
+                print(
+                    f"  {portfolio_name}: {buy_count}/{len(symbols)} BUY recommendations"
+                )
 
         except Exception as e:
             print(f"  ❌ {portfolio_name} analysis failed: {str(e)}")
@@ -167,7 +168,7 @@ async def custom_parameters_example():
         "symbols": ["TSLA", "PLTR", "ARKK"],
         "portfolio_size": 50000,
         "risk_tolerance": "aggressive",
-        "time_horizon": "short_term"
+        "time_horizon": "short_term",
     }
 
     # Conservative low-risk portfolio
@@ -175,13 +176,10 @@ async def custom_parameters_example():
         "symbols": ["JNJ", "PG", "KO"],
         "portfolio_size": 200000,
         "risk_tolerance": "conservative",
-        "time_horizon": "long_term"
+        "time_horizon": "long_term",
     }
 
-    configs = {
-        "Aggressive": aggressive_config,
-        "Conservative": conservative_config
-    }
+    configs = {"Aggressive": aggressive_config, "Conservative": conservative_config}
 
     for config_name, config in configs.items():
         print(f"\n{config_name} Portfolio Analysis:")
@@ -204,7 +202,7 @@ def check_environment():
     """
     Check if required environment variables are set
     """
-    required_vars = ["OPENAI_API_KEY", "FIRECRAWL_API_KEY"]
+    required_vars = ["OPENAI_API_KEY"]
 
     missing_vars = []
     for var in required_vars:

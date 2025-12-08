@@ -3,11 +3,11 @@ import pytest
 import os
 from unittest.mock import Mock, AsyncMock
 from datetime import datetime, timedelta
-from typing import Dict, Any, List
+
+from tradegraph_financial_advisor.models.financial_data import NewsArticle
 
 # Test configuration
 os.environ["OPENAI_API_KEY"] = "test-openai-key"
-os.environ["FIRECRAWL_API_KEY"] = "test-firecrawl-key"
 os.environ["ALPHA_VANTAGE_API_KEY"] = "test-alpha-vantage-key"
 os.environ["LOG_LEVEL"] = "DEBUG"
 
@@ -23,7 +23,7 @@ def event_loop():
 @pytest.fixture
 def mock_openai_response():
     """Mock OpenAI API response."""
-    mock_response = Mock()
+    mock_response = AsyncMock()
     mock_response.content = '{"sentiment_score": 0.2, "sentiment_label": "bullish", "confidence": 0.8, "key_themes": ["growth", "innovation"], "sentiment_drivers": ["strong earnings", "new product launch"]}'
     return mock_response
 
@@ -40,7 +40,7 @@ def sample_news_articles():
             "published_at": datetime.now().isoformat(),
             "symbols": ["AAPL"],
             "sentiment": "bullish",
-            "impact_score": 0.8
+            "impact_score": 0.8,
         },
         {
             "title": "Microsoft Azure Growth Continues",
@@ -50,8 +50,8 @@ def sample_news_articles():
             "published_at": (datetime.now() - timedelta(hours=2)).isoformat(),
             "symbols": ["MSFT"],
             "sentiment": "bullish",
-            "impact_score": 0.7
-        }
+            "impact_score": 0.7,
+        },
     ]
 
 
@@ -67,7 +67,7 @@ def sample_market_data():
             "volume": 45234567,
             "market_cap": 3000000000000,
             "pe_ratio": 28.5,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         },
         "MSFT": {
             "symbol": "MSFT",
@@ -77,8 +77,8 @@ def sample_market_data():
             "volume": 23456789,
             "market_cap": 2800000000000,
             "pe_ratio": 32.1,
-            "timestamp": datetime.now().isoformat()
-        }
+            "timestamp": datetime.now().isoformat(),
+        },
     }
 
 
@@ -105,7 +105,7 @@ def sample_financial_data():
             "fifty_two_week_low": 164.08,
             "current_price": 195.89,
             "report_date": datetime.now().isoformat(),
-            "report_type": "quarterly"
+            "report_type": "quarterly",
         }
     }
 
@@ -127,7 +127,7 @@ def sample_technical_data():
             "bollinger_lower": 175.25,
             "support_level": 185.00,
             "resistance_level": 200.00,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
     }
 
@@ -155,7 +155,7 @@ def sample_recommendations():
             "catalysts": ["iPhone 16 launch", "Vision Pro adoption"],
             "analyst_notes": "Strong fundamentals with positive growth outlook",
             "sector": "Technology",
-            "expected_return": 0.15
+            "expected_return": 0.15,
         },
         {
             "symbol": "MSFT",
@@ -171,36 +171,18 @@ def sample_recommendations():
             "fundamental_score": 0.85,
             "technical_score": 0.80,
             "sentiment_score": 0.90,
-            "key_factors": ["Azure growth", "AI leadership", "Strong enterprise business"],
+            "key_factors": [
+                "Azure growth",
+                "AI leadership",
+                "Strong enterprise business",
+            ],
             "risks": ["Cloud competition", "Economic slowdown"],
             "catalysts": ["AI monetization", "Copilot adoption"],
             "analyst_notes": "Dominant position in cloud and AI markets",
             "sector": "Technology",
-            "expected_return": 0.12
-        }
+            "expected_return": 0.12,
+        },
     ]
-
-
-@pytest.fixture
-def mock_firecrawl_service():
-    """Mock Firecrawl service for testing."""
-    mock_service = AsyncMock()
-    mock_service.start.return_value = None
-    mock_service.stop.return_value = None
-    mock_service.scrape_url.return_value = {
-        "data": {
-            "markdown": "# Sample Article\n\nThis is sample article content for testing.",
-            "html": "<h1>Sample Article</h1><p>This is sample article content for testing.</p>"
-        }
-    }
-    mock_service.scrape_multiple_urls.return_value = [
-        {
-            "url": "https://example.com/article1",
-            "data": {"markdown": "Article 1 content"}
-        }
-    ]
-    mock_service.health_check.return_value = True
-    return mock_service
 
 
 @pytest.fixture
@@ -223,23 +205,26 @@ def mock_yfinance_ticker():
         "dividendYield": 0.0047,
         "beta": 1.29,
         "fiftyTwoWeekHigh": 199.62,
-        "fiftyTwoWeekLow": 164.08
+        "fiftyTwoWeekLow": 164.08,
     }
 
     # Mock historical data
     import pandas as pd
     import numpy as np
 
-    dates = pd.date_range(end=datetime.now(), periods=100, freq='D')
+    dates = pd.date_range(end=datetime.now(), periods=100, freq="D")
     prices = 190 + np.cumsum(np.random.randn(100) * 0.5)
 
-    mock_history = pd.DataFrame({
-        'Open': prices * 0.99,
-        'High': prices * 1.02,
-        'Low': prices * 0.98,
-        'Close': prices,
-        'Volume': np.random.randint(20000000, 60000000, 100)
-    }, index=dates)
+    mock_history = pd.DataFrame(
+        {
+            "Open": prices * 0.99,
+            "High": prices * 1.02,
+            "Low": prices * 0.98,
+            "Close": prices,
+            "Volume": np.random.randint(20000000, 60000000, 100),
+        },
+        index=dates,
+    )
 
     mock_ticker.history.return_value = mock_history
     mock_ticker.quarterly_financials = pd.DataFrame()
@@ -257,23 +242,21 @@ def sample_portfolio_recommendation():
                 "symbol": "AAPL",
                 "recommendation": "buy",
                 "confidence_score": 0.785,
-                "recommended_allocation": 0.085
+                "recommended_allocation": 0.085,
             },
             {
                 "symbol": "MSFT",
                 "recommendation": "strong_buy",
                 "confidence_score": 0.852,
-                "recommended_allocation": 0.12
-            }
+                "recommended_allocation": 0.12,
+            },
         ],
         "total_confidence": 0.8185,
         "diversification_score": 0.75,
         "overall_risk_level": "medium",
         "portfolio_size": 100000,
-        "sector_weights": {
-            "Technology": 0.205
-        },
-        "rebalancing_frequency": "quarterly"
+        "sector_weights": {"Technology": 0.205},
+        "rebalancing_frequency": "quarterly",
     }
 
 
@@ -281,7 +264,7 @@ def sample_portfolio_recommendation():
 def mock_langchain_llm():
     """Mock LangChain LLM for testing."""
     mock_llm = AsyncMock()
-    mock_llm.ainvoke.return_value = Mock(
+    mock_llm.ainvoke.return_value = AsyncMock(
         content='{"recommendation": "buy", "confidence_score": 0.8, "target_price": 220.0}'
     )
     return mock_llm
@@ -289,6 +272,7 @@ def mock_langchain_llm():
 
 class MockHTTPResponse:
     """Mock HTTP response for testing."""
+
     def __init__(self, status=200, json_data=None, text_data=None):
         self.status = status
         self._json_data = json_data or {}
@@ -314,11 +298,10 @@ def mock_aiohttp_session():
     mock_session.get.return_value = MockHTTPResponse(
         status=200,
         json_data={"test": "data"},
-        text_data="<html><body>Test content</body></html>"
+        text_data="<html><body>Test content</body></html>",
     )
     mock_session.post.return_value = MockHTTPResponse(
-        status=200,
-        json_data={"success": True}
+        status=200, json_data={"success": True}
     )
     mock_session.close.return_value = None
     return mock_session
@@ -334,21 +317,12 @@ def sample_analysis_context():
                 {
                     "title": "Apple Earnings Beat",
                     "content": "Strong quarterly results",
-                    "sentiment": "bullish"
+                    "sentiment": "bullish",
                 }
             ],
-            "market_data": {
-                "current_price": 195.89,
-                "volume": 45000000
-            },
-            "technical_indicators": {
-                "rsi": 65.2,
-                "sma_20": 185.50
-            },
-            "sentiment_analysis": {
-                "sentiment_score": 0.2,
-                "confidence": 0.8
-            }
+            "market_data": {"current_price": 195.89, "volume": 45000000},
+            "technical_indicators": {"rsi": 65.2, "sma_20": 185.50},
+            "sentiment_analysis": {"sentiment_score": 0.2, "confidence": 0.8},
         }
     }
 
@@ -364,7 +338,7 @@ def create_test_news_article(symbol="AAPL", sentiment="bullish"):
         "published_at": datetime.now().isoformat(),
         "symbols": [symbol],
         "sentiment": sentiment,
-        "impact_score": 0.7
+        "impact_score": 0.7,
     }
 
 
@@ -382,5 +356,28 @@ def create_test_recommendation(symbol="AAPL", recommendation="buy"):
         "recommended_allocation": 0.1,
         "fundamental_score": 0.8,
         "technical_score": 0.75,
-        "sentiment_score": 0.85
+        "sentiment_score": 0.85,
     }
+
+
+@pytest.fixture
+def mock_local_scraping_service():
+    """Mock LocalScrapingService for testing."""
+    mock_service = AsyncMock()
+    mock_service.start.return_value = None
+    mock_service.stop.return_value = None
+    mock_service.search_and_scrape_news.return_value = [
+        NewsArticle(
+            title="Sample Scraped News",
+            url="https://example.com/scraped-news",
+            content="Content from scraped news.",
+            source="local-scraper",
+            published_at=datetime.now().isoformat(),
+            symbols=["AAPL"],
+        )
+    ]
+    mock_service.search_and_scrape_financial_reports.return_value = [
+        {"url": "https://example.com/scraped-report", "content": "10K filing content"}
+    ]
+    mock_service.health_check.return_value = True
+    return mock_service

@@ -6,7 +6,7 @@
   <img src="https://img.shields.io/badge/Status-Production-brightgreen.svg" alt="Status">
 </div>
 
-A sophisticated **multi-agent financial analysis system** that uses LangGraph, Firecrawl, and MCP (Model Context Protocol) to provide intelligent trading recommendations based on real-time financial news and comprehensive company analysis.
+A sophisticated **multi-agent financial analysis system** that uses LangGraph, ddgs, and Crawl4AI to provide intelligent trading recommendations based on real-time financial news and comprehensive company analysis.
 
 ## 🚀 Key Features
 
@@ -56,7 +56,6 @@ cp .env.example .env
 
 # Add your API keys
 OPENAI_API_KEY=your_openai_key
-FIRECRAWL_API_KEY=your_firecrawl_key
 ```
 
 ### Basic Usage

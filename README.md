@@ -4,12 +4,11 @@
 
 # TradeGraph Financial Advisor
 
-A sophisticated multi-agent financial analysis system that uses **LangGraph**, **Firecrawl**, and **MCP (Model Context Protocol)** to provide intelligent trading recommendations based on real-time financial news and comprehensive company analysis.
+A sophisticated multi-agent financial analysis system that uses **LangGraph**, **ddgs**, and **Crawl4AI** to provide intelligent trading recommendations based on real-time financial news and comprehensive company analysis.
 
 ## 🚀 Features
 
 - **Multi-Agent Architecture**: Coordinated agents for news analysis, financial data processing, and report analysis
-- **Real-Time News Analysis**: Scrapes and analyzes financial news from multiple sources using Firecrawl
 - **SEC Filing Analysis**: Deep analysis of 10-K and 10-Q reports using AI
 - **Technical Analysis**: Comprehensive technical indicators and chart pattern recognition
 - **Sentiment Analysis**: AI-powered sentiment analysis of news and social media
@@ -21,7 +20,6 @@ A sophisticated multi-agent financial analysis system that uses **LangGraph**, *
 
 - Python 3.10+
 - OpenAI API key
-- Firecrawl API key
 - Optional: Alpha Vantage API key for enhanced financial data
 
 ## 🛠️ Installation
@@ -69,8 +67,6 @@ Required environment variables:
 
 ```env
 OPENAI_API_KEY=your_openai_api_key_here
-FIRECRAWL_API_KEY=your_firecrawl_api_key_here
-
 # Optional but recommended
 ALPHA_VANTAGE_API_KEY=your_alpha_vantage_api_key_here
 FINANCIAL_DATA_API_KEY=your_financial_data_api_key_here
@@ -287,7 +283,6 @@ GOOGL: HOLD (Confidence: 65.0%)
 ### Technology Stack
 
 - **LangGraph**: Workflow orchestration and agent coordination
-- **Firecrawl**: Web scraping and content extraction
 - **OpenAI GPT-4**: Natural language processing and analysis
 - **yfinance**: Financial data retrieval
 - **pandas/numpy**: Data processing and analysis
@@ -400,7 +395,6 @@ pre-commit run --all-files
 
 ### Rate Limits
 - **OpenAI API**: Monitor usage to avoid rate limits
-- **Firecrawl**: Respect rate limits (typically 100-1000 requests/hour)
 - **Financial APIs**: Most have daily/monthly limits
 
 ### Data Accuracy
@@ -433,7 +427,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - **LangGraph** team for the excellent multi-agent framework
-- **Firecrawl** for reliable web scraping capabilities
 - **OpenAI** for powerful language models
 - **Financial data providers** for market data access
 

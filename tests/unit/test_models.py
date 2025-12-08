@@ -8,7 +8,7 @@ from tradegraph_financial_advisor.models.financial_data import (
     CompanyFinancials,
     MarketData,
     TechnicalIndicators,
-    AnalysisContext
+    AnalysisContext,
 )
 from tradegraph_financial_advisor.models.recommendations import (
     TradingRecommendation,
@@ -16,7 +16,7 @@ from tradegraph_financial_advisor.models.recommendations import (
     RecommendationType,
     RiskLevel,
     TimeHorizon,
-    AlertRecommendation
+    AlertRecommendation,
 )
 
 
@@ -33,7 +33,7 @@ class TestFinancialDataModels:
             published_at=datetime.now(),
             symbols=["AAPL", "MSFT"],
             sentiment=SentimentType.BULLISH,
-            impact_score=0.8
+            impact_score=0.8,
         )
 
         assert article.title == "Test Article"
@@ -51,7 +51,7 @@ class TestFinancialDataModels:
                 content="Content",
                 source="source",
                 published_at=datetime.now(),
-                impact_score=1.5  # Invalid - should be <= 1.0
+                impact_score=1.5,  # Invalid - should be <= 1.0
             )
 
         # Test negative impact score
@@ -62,7 +62,7 @@ class TestFinancialDataModels:
                 content="Content",
                 source="source",
                 published_at=datetime.now(),
-                impact_score=-0.1  # Invalid - should be >= 0.0
+                impact_score=-0.1,  # Invalid - should be >= 0.0
             )
 
     def test_sentiment_type_enum(self):
@@ -94,7 +94,7 @@ class TestFinancialDataModels:
             beta=1.29,
             fifty_two_week_high=199.62,
             fifty_two_week_low=164.08,
-            current_price=195.89
+            current_price=195.89,
         )
 
         assert financials.symbol == "AAPL"
@@ -112,7 +112,7 @@ class TestFinancialDataModels:
             volume=45234567,
             market_cap=3000000000000,
             pe_ratio=28.5,
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
 
         assert market_data.symbol == "AAPL"
@@ -135,7 +135,7 @@ class TestFinancialDataModels:
             bollinger_lower=175.25,
             support_level=185.00,
             resistance_level=200.00,
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
 
         assert technical.symbol == "AAPL"
@@ -152,7 +152,7 @@ class TestFinancialDataModels:
             market_data=None,
             technical_indicators=None,
             peer_comparison={},
-            sector_performance={}
+            sector_performance={},
         )
 
         assert context.symbol == "AAPL"
@@ -205,7 +205,7 @@ class TestRecommendationModels:
             catalysts=["Product launch", "Earnings beat"],
             analyst_notes="Strong buy recommendation",
             sector="Technology",
-            expected_return=0.15
+            expected_return=0.15,
         )
 
         assert recommendation.symbol == "AAPL"
@@ -228,7 +228,7 @@ class TestRecommendationModels:
                 recommended_allocation=0.1,
                 fundamental_score=0.8,
                 technical_score=0.7,
-                sentiment_score=0.8
+                sentiment_score=0.8,
             )
 
         # Test invalid allocation (> 1.0)
@@ -244,7 +244,7 @@ class TestRecommendationModels:
                 recommended_allocation=1.5,  # Invalid
                 fundamental_score=0.8,
                 technical_score=0.7,
-                sentiment_score=0.8
+                sentiment_score=0.8,
             )
 
     def test_portfolio_recommendation_creation(self):
@@ -261,7 +261,7 @@ class TestRecommendationModels:
                 recommended_allocation=0.1,
                 fundamental_score=0.8,
                 technical_score=0.7,
-                sentiment_score=0.8
+                sentiment_score=0.8,
             )
         ]
 
@@ -272,7 +272,7 @@ class TestRecommendationModels:
             overall_risk_level=RiskLevel.MEDIUM,
             portfolio_size=100000,
             sector_weights={"Technology": 0.5},
-            rebalancing_frequency="quarterly"
+            rebalancing_frequency="quarterly",
         )
 
         assert len(portfolio.recommendations) == 1
@@ -287,7 +287,7 @@ class TestRecommendationModels:
             alert_type="price_target",
             message="AAPL approaching target price",
             urgency="high",
-            trigger_conditions={"current_price": 195.0, "target_price": 200.0}
+            trigger_conditions={"current_price": 195.0, "target_price": 200.0},
         )
 
         assert alert.symbol == "AAPL"
@@ -308,7 +308,7 @@ class TestRecommendationModels:
             recommended_allocation=0.1,
             fundamental_score=0.8,
             technical_score=0.7,
-            sentiment_score=0.8
+            sentiment_score=0.8,
         )
 
         # Test dict conversion
@@ -319,6 +319,7 @@ class TestRecommendationModels:
 
         # Test JSON serialization
         import json
+
         json_str = recommendation.json()
         parsed = json.loads(json_str)
         assert parsed["symbol"] == "AAPL"
@@ -336,7 +337,7 @@ class TestRecommendationModels:
             "recommended_allocation": 0.1,
             "fundamental_score": 0.8,
             "technical_score": 0.7,
-            "sentiment_score": 0.8
+            "sentiment_score": 0.8,
         }
 
         recommendation = TradingRecommendation(**data)
@@ -352,7 +353,7 @@ class TestRecommendationModels:
             url="https://example.com",
             content="Content",
             source="source",
-            published_at=datetime.now()
+            published_at=datetime.now(),
         )
         assert article.symbols == []
         assert article.sentiment is None
@@ -370,7 +371,7 @@ class TestRecommendationModels:
             recommended_allocation=0.1,
             fundamental_score=0.8,
             technical_score=0.7,
-            sentiment_score=0.8
+            sentiment_score=0.8,
         )
         assert recommendation.key_factors == []
         assert recommendation.risks == []
@@ -380,10 +381,7 @@ class TestRecommendationModels:
     def test_optional_fields(self):
         """Test models with optional fields."""
         # CompanyFinancials with minimal data
-        financials = CompanyFinancials(
-            symbol="AAPL",
-            company_name="Apple Inc."
-        )
+        financials = CompanyFinancials(symbol="AAPL", company_name="Apple Inc.")
         assert financials.symbol == "AAPL"
         assert financials.market_cap is None
         assert financials.pe_ratio is None
@@ -400,7 +398,7 @@ class TestRecommendationModels:
             recommended_allocation=0.05,
             fundamental_score=0.5,
             technical_score=0.5,
-            sentiment_score=0.5
+            sentiment_score=0.5,
         )
         assert recommendation.target_price is None
         assert recommendation.stop_loss is None

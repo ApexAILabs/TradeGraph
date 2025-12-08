@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tradegraph-financial-advisor"
 version = "1.0.0"
-description = "Multi-agent financial analysis system using LangGraph, Firecrawl, and MCP for trading recommendations"
+description = "Multi-agent financial analysis system using LangGraph, ddgs, and Crawl4AI for trading recommendations"
 authors = [{name = "TradeGraph Team", email = "team@tradegraph.com"}]
 license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.10"
-keywords = ["financial-analysis", "trading", "langgraph", "firecrawl", "mcp", "multi-agent"]
+keywords = ["financial-analysis", "trading", "langgraph", "ddgs", "crawl4ai", "mcp", "multi-agent"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Financial and Insurance Industry",
@@ -24,7 +24,8 @@ dependencies = [
     "langgraph>=0.2.0",
     "langchain>=0.3.0",
     "langchain-openai>=0.2.0",
-    "firecrawl-py>=1.0.0",
+    "ddgs~=9.9",
+    "crawl4ai~=0.7",
     "mcp>=1.0.0",
     "requests>=2.31.0",
     "aiohttp>=3.9.0",
@@ -39,6 +40,7 @@ dependencies = [
     "yfinance>=0.2.0",
     "alpha-vantage>=2.3.0",
     "python-dateutil>=2.8.0",
+    "plotly>=5.15.0",
     "fastapi>=0.118.0",
 ]
 
@@ -46,6 +48,7 @@ dependencies = [
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
     "black>=23.0.0",
     "isort>=5.12.0",
     "flake8>=6.0.0",
