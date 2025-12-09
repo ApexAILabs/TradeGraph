@@ -9,6 +9,7 @@ import textwrap
 
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.units import inch
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
 
@@ -28,6 +29,9 @@ class ChannelPDFReportWriter:
         price_trends: Dict[str, Any],
         recommendations: List[Dict[str, Any]],
         symbols: List[str],
+        portfolio_recommendation: Optional[Dict[str, Any]] = None,
+        analysis_summary: Optional[Dict[str, Any]] = None,
+        allocation_chart_path: Optional[str] = None,
         output_path: Optional[str] = None,
     ) -> str:
         os.makedirs("results", exist_ok=True)
@@ -47,12 +51,42 @@ class ChannelPDFReportWriter:
             f"Symbols: {', '.join(symbols)} | Generated {datetime.now():%Y-%m-%d %H:%M UTC}",
         )
 
+        cursor_y = self._draw_portfolio_overview(
+            doc,
+            cursor_y,
+            analysis_summary or {},
+            portfolio_recommendation or {},
+            allocation_chart_path,
+        )
+
         cursor_y = self._draw_section(
             doc, cursor_y, "Executive Summary", summary_payload.get("summary_text", "")
         )
 
-        news_text = "\n".join(summary_payload.get("news_takeaways", []))
-        cursor_y = self._draw_section(doc, cursor_y, "News Highlights", news_text)
+        cursor_y = self._draw_section(
+            doc, cursor_y, "Desk Memo", summary_payload.get("advisor_memo", "")
+        )
+
+        cursor_y = self._draw_bullet_section(
+            doc,
+            cursor_y,
+            "News Highlights",
+            summary_payload.get("news_takeaways", []),
+        )
+
+        cursor_y = self._draw_bullet_section(
+            doc,
+            cursor_y,
+            "Price & Trend Signals",
+            summary_payload.get("price_action_notes", []),
+        )
+
+        cursor_y = self._draw_bullet_section(
+            doc,
+            cursor_y,
+            "Actionable Guidance",
+            summary_payload.get("guidance_points", []),
+        )
 
         cursor_y = self._draw_section(
             doc,
@@ -62,6 +96,8 @@ class ChannelPDFReportWriter:
             f"Risk Assessment: {summary_payload.get('risk_assessment', 'n/a')}\n"
             f"Trend Notes: {summary_payload.get('trend_commentary', 'n/a')}",
         )
+
+        cursor_y = self._draw_key_stats(doc, cursor_y, summary_payload.get("key_stats", {}))
 
         cursor_y = self._draw_channel_breakdown(doc, cursor_y, channel_payloads)
         cursor_y = self._draw_recommendations(doc, cursor_y, recommendations)
@@ -90,6 +126,52 @@ class ChannelPDFReportWriter:
         doc.setFont("Helvetica", 11)
         wrapped = self._wrap_text(body, 96)
         for line in wrapped:
+            doc.drawString(self.margin, cursor_y, line)
+            cursor_y -= self.line_height
+        return cursor_y - 6
+
+    def _draw_bullet_section(
+        self,
+        doc: canvas.Canvas,
+        cursor_y: float,
+        title: str,
+        items: List[str],
+    ) -> float:
+        if not items:
+            return cursor_y
+        cursor_y = self._ensure_space(doc, cursor_y, min_height=80)
+        doc.setFont("Helvetica-Bold", 14)
+        doc.drawString(self.margin, cursor_y, title)
+        cursor_y -= 18
+        doc.setFont("Helvetica", 11)
+        for item in items:
+            for line in self._wrap_text(item, 92):
+                doc.drawString(self.margin + 10, cursor_y, f"• {line}")
+                cursor_y -= self.line_height
+        return cursor_y - 6
+
+    def _draw_key_stats(
+        self,
+        doc: canvas.Canvas,
+        cursor_y: float,
+        stats: Dict[str, Any],
+    ) -> float:
+        if not stats:
+            return cursor_y
+        cursor_y = self._ensure_space(doc, cursor_y, min_height=70)
+        doc.setFont("Helvetica-Bold", 14)
+        doc.drawString(self.margin, cursor_y, "Monitoring Stats")
+        cursor_y -= 18
+        doc.setFont("Helvetica", 11)
+        lines = [
+            f"Channels monitored: {stats.get('channel_count', 0)}",
+            f"Headlines ingested: {stats.get('headline_count', 0)}",
+            f"Recommendations referenced: {stats.get('recommendation_count', 0)}",
+        ]
+        covered = stats.get("covered_symbols")
+        if covered:
+            lines.append(f"Symbols highlighted: {', '.join(covered)}")
+        for line in lines:
             doc.drawString(self.margin, cursor_y, line)
             cursor_y -= self.line_height
         return cursor_y - 6
@@ -184,6 +266,82 @@ class ChannelPDFReportWriter:
             cursor_y -= self.line_height
         return cursor_y
 
+    def _draw_portfolio_overview(
+        self,
+        doc: canvas.Canvas,
+        cursor_y: float,
+        analysis_summary: Dict[str, Any],
+        portfolio_recommendation: Dict[str, Any],
+        allocation_chart_path: Optional[str],
+    ) -> float:
+        cursor_y = self._ensure_space(doc, cursor_y, min_height=180)
+        section_top = cursor_y
+        doc.setFont("Helvetica-Bold", 14)
+        doc.drawString(self.margin, cursor_y, "Portfolio Overview")
+        cursor_y -= 18
+        doc.setFont("Helvetica", 11)
+
+        portfolio_size = analysis_summary.get("portfolio_size")
+        risk_tolerance = analysis_summary.get("risk_tolerance", "-")
+        time_horizon = analysis_summary.get("time_horizon", "-")
+        symbols_line = ", ".join(analysis_summary.get("symbols_analyzed", []))
+        text_lines = [
+            f"Portfolio Size: {self._format_currency(portfolio_size)}",
+            f"Risk Tolerance: {risk_tolerance.title() if isinstance(risk_tolerance, str) else risk_tolerance}",
+            f"Time Horizon: {time_horizon.replace('_', ' ').title() if isinstance(time_horizon, str) else time_horizon}",
+        ]
+        if symbols_line:
+            text_lines.append(f"Focus Symbols: {symbols_line}")
+
+        total_conf = portfolio_recommendation.get("total_confidence")
+        diversification = portfolio_recommendation.get("diversification_score")
+        expected_return = portfolio_recommendation.get("expected_return")
+        expected_vol = portfolio_recommendation.get("expected_volatility")
+        overall_risk = portfolio_recommendation.get("overall_risk_level")
+        if isinstance(total_conf, (int, float)):
+            text_lines.append(f"Portfolio Confidence: {total_conf:.0%}")
+        if isinstance(diversification, (int, float)):
+            text_lines.append(f"Diversification Score: {diversification:.0%}")
+        if isinstance(expected_return, (int, float)):
+            text_lines.append(f"Expected Return: {expected_return:.1%}")
+        elif expected_return:
+            text_lines.append(f"Expected Return: {expected_return}")
+        if isinstance(expected_vol, (int, float)):
+            text_lines.append(f"Expected Volatility: {expected_vol:.1%}")
+        elif expected_vol:
+            text_lines.append(f"Expected Volatility: {expected_vol}")
+        if overall_risk:
+            text_lines.append(f"Overall Risk: {str(overall_risk).title()}")
+
+        for line in text_lines:
+            doc.drawString(self.margin, cursor_y, line)
+            cursor_y -= self.line_height
+
+        cursor_after_text = cursor_y - 6
+
+        chart_bottom = cursor_after_text
+        if allocation_chart_path and os.path.exists(allocation_chart_path):
+            try:
+                image = ImageReader(allocation_chart_path)
+                chart_width = 2.8 * inch
+                chart_height = 2.8 * inch
+                chart_x = self.page_width - self.margin - chart_width
+                chart_y = section_top - chart_height
+                doc.drawImage(
+                    image,
+                    chart_x,
+                    chart_y,
+                    width=chart_width,
+                    height=chart_height,
+                    preserveAspectRatio=True,
+                    mask="auto",
+                )
+                chart_bottom = min(chart_y - 10, cursor_after_text)
+            except Exception:
+                chart_bottom = cursor_after_text
+
+        return min(cursor_after_text, chart_bottom)
+
     def _ensure_space(
         self, doc: canvas.Canvas, cursor_y: float, *, min_height: float
     ) -> float:
@@ -205,6 +363,15 @@ class ChannelPDFReportWriter:
         if percent is None:
             return " - "
         return f"{percent:+.1f}%"
+
+    @staticmethod
+    def _format_currency(value: Optional[float]) -> str:
+        if value is None:
+            return "n/a"
+        try:
+            return f"${float(value):,.0f}"
+        except (TypeError, ValueError):
+            return str(value)
 
 
 __all__ = ["ChannelPDFReportWriter"]
