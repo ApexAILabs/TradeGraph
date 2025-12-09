@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     )
     analysis_depth: str = Field("detailed", env="ANALYSIS_DEPTH")
     default_portfolio_size: float = Field(100000.0, env="DEFAULT_PORTFOLIO_SIZE")
+    news_db_path: str = Field("tradegraph.duckdb", env="NEWS_DB_PATH")
 
     model_config = {"env_file": ".env", "case_sensitive": False, "extra": "ignore"}
 

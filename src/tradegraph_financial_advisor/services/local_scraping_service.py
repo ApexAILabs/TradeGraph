@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, List, Sequence, Optional
+from urllib.parse import urlparse
 
 from loguru import logger
 from ddgs import DDGS
@@ -11,11 +12,23 @@ from crawl4ai import AsyncWebCrawler
 
 from ..models.financial_data import NewsArticle
 from ..utils.helpers import generate_summary
+from ..repositories import NewsRepository
 
 
 class LocalScrapingService:
-    def __init__(self):
+    OPEN_AGENCY_DOMAINS = {
+        "theguardian.com",
+        "guardian.co.uk",
+        "bbc.co.uk",
+        "bbci.co.uk",
+        "aljazeera.com",
+        "npr.org",
+        "financialexpress.com",
+    }
+
+    def __init__(self, news_repository: Optional[NewsRepository] = None):
         self.crawler = AsyncWebCrawler()
+        self.news_repository = news_repository or self._build_repository()
 
     async def search_and_scrape_news(
         self, symbols: Sequence[str], max_articles_per_symbol: int = 5
@@ -25,6 +38,8 @@ class LocalScrapingService:
         all_articles: List[NewsArticle] = []
         if not symbols:
             return all_articles
+
+        new_articles: List[NewsArticle] = []
 
         with DDGS() as ddgs:
             for symbol in symbols:
@@ -47,6 +62,12 @@ class LocalScrapingService:
                         url = result.get("url") or result.get("href")
                         if not url:
                             continue
+                        netloc = urlparse(url).netloc.lower()
+                        if any(
+                            netloc.endswith(domain)
+                            for domain in self.OPEN_AGENCY_DOMAINS
+                        ):
+                            continue
                         scraped_data = await self.crawler.arun(url)
                         if not scraped_data or not scraped_data.markdown:
                             continue
@@ -60,9 +81,12 @@ class LocalScrapingService:
                             symbols=[symbol],
                         )
                         all_articles.append(article)
+                        new_articles.append(article)
                     except Exception as scrape_exc:
                         logger.warning(f"Failed to scrape article {result.get('url')}: {scrape_exc}")
 
+        if new_articles:
+            await self._persist_articles(new_articles)
         return all_articles
 
     async def search_and_scrape_financial_reports(
@@ -112,6 +136,7 @@ class LocalScrapingService:
     async def stop(self):
         logger.info("LocalScrapingService stopped.")
         await self.crawler.close()
+        self.news_repository = None
 
     async def health_check(self) -> bool:
         # For now, we assume the service is healthy if it can be instantiated.
@@ -136,3 +161,18 @@ class LocalScrapingService:
             return list(ddgs.text(query, **kwargs))
 
         return await asyncio.to_thread(_runner)
+
+    def _build_repository(self) -> Optional[NewsRepository]:
+        try:
+            return NewsRepository()
+        except Exception as exc:
+            logger.warning(f"News repository initialization failed: {exc}")
+            return None
+
+    async def _persist_articles(self, articles: List[NewsArticle]) -> None:
+        if not self.news_repository or not articles:
+            return
+        try:
+            await asyncio.to_thread(self.news_repository.record_articles, articles)
+        except Exception as exc:
+            logger.warning(f"Failed to write scraped news to DuckDB: {exc}")
