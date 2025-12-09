@@ -62,7 +62,7 @@ class FinancialAnalysisAgent(BaseAgent):
                     else:
                         market_data = await self._get_equity_market_data(symbol)
                     symbol_data["market_data"] = (
-                        market_data.dict() if market_data else None
+                        market_data.model_dump() if market_data else None
                     )
 
                 if include_financials:
@@ -73,7 +73,7 @@ class FinancialAnalysisAgent(BaseAgent):
                             symbol, market_data
                         )
                         symbol_data["financials"] = (
-                            financials.dict() if financials else None
+                            financials.model_dump() if financials else None
                         )
 
                 if include_technical:
@@ -82,7 +82,7 @@ class FinancialAnalysisAgent(BaseAgent):
                     else:
                         technical = await self._get_equity_technical_indicators(symbol)
                     symbol_data["technical_indicators"] = (
-                        technical.dict() if technical else None
+                        technical.model_dump() if technical else None
                     )
 
                 results[symbol] = symbol_data
