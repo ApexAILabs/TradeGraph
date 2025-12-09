@@ -9,12 +9,13 @@ from .workflows.analysis_workflow import FinancialAnalysisWorkflow
 from .agents.recommendation_engine import TradingRecommendationEngine
 from .agents.report_analysis_agent import ReportAnalysisAgent
 from .agents.channel_report_agent import ChannelReportAgent
+from .agents.multi_asset_allocation_agent import MultiAssetAllocationAgent
 from .config.settings import settings, refresh_openai_api_key
 from .utils.helpers import save_analysis_results
 from .visualization import charts
 from .services.channel_stream_service import FinancialNewsChannelService
 from .services.price_trend_service import PriceTrendService
-from .reporting import ChannelPDFReportWriter
+from .reporting import ChannelPDFReportWriter, MultiAssetPDFReportWriter
 
 
 class FinancialAdvisor:
@@ -29,6 +30,8 @@ class FinancialAdvisor:
         self.channel_service = FinancialNewsChannelService()
         self.trend_service = PriceTrendService()
         self.pdf_report_writer = ChannelPDFReportWriter()
+        self.multi_asset_agent = MultiAssetAllocationAgent()
+        self.multi_asset_pdf_writer = MultiAssetPDFReportWriter()
 
     async def analyze_portfolio(
         self,
@@ -113,8 +116,10 @@ class FinancialAdvisor:
                 "portfolio_recommendation": (
                     portfolio_recommendation if portfolio_recommendation else None
                 ),
+                "recommendations": workflow_results.get("recommendations", []),
                 "sentiment_analysis": sentiment_analysis,
                 "detailed_reports": report_analyses,
+                "channel_streams": workflow_results.get("channel_streams", {}),
                 "analysis_metadata": {
                     "workflow_version": "1.0.0",
                     "agents_used": [
@@ -183,6 +188,24 @@ class FinancialAdvisor:
             logger.error(f"Quick analysis failed: {str(e)}")
             raise
 
+    async def plan_multi_asset_allocation(
+        self, *, budget: float, strategies: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        if budget <= 0:
+            raise ValueError("Budget must be positive for allocation planning.")
+        payload = {
+            "budget": budget,
+            "strategies": strategies,
+        }
+        return await self.multi_asset_agent.execute(payload)
+
+    def build_multi_asset_pdf(
+        self, plan: Dict[str, Any], output_path: Optional[str] = None
+    ) -> str:
+        return self.multi_asset_pdf_writer.build_report(
+            plan=plan, output_path=output_path
+        )
+
     async def generate_channel_pdf_report(
         self,
         symbols: List[str],
@@ -221,12 +244,24 @@ class FinancialAdvisor:
             }
         )
 
+        recommendations = reference_results.get("recommendations", [])
+        portfolio_rec = reference_results.get("portfolio_recommendation")
+        allocation_chart_path = None
+        if recommendations:
+            allocation_chart_path = charts.create_portfolio_allocation_chart(
+                recommendations=recommendations,
+                output_path="results/portfolio_allocation.png",
+            )
+
         pdf_path = self.pdf_report_writer.build_report(
             summary_payload=summary_payload,
             channel_payloads=channel_streams,
             price_trends=price_trends,
-            recommendations=reference_results.get("recommendations", []),
+            recommendations=recommendations,
             symbols=symbols,
+            portfolio_recommendation=portfolio_rec,
+            analysis_summary=reference_results.get("analysis_summary", {}),
+            allocation_chart_path=allocation_chart_path,
             output_path=output_path,
         )
 
@@ -341,6 +376,46 @@ class FinancialAdvisor:
 
         print("\n" + "=" * 80)
 
+    def print_multi_asset_plan(self, plan: Dict[str, Any]) -> None:
+        budget = plan.get("budget", 0)
+        print("\n" + "=" * 80)
+        print("TRADEGRAPH MULTI-ASSET ALLOCATION PLAN")
+        print("=" * 80)
+        print(f"Budget: ${budget:,.2f}")
+
+        strategies = plan.get("strategies", [])
+        for strategy in strategies:
+            print(
+                f"\n📌 Strategy: {strategy.get('strategy', '').title()} - {strategy.get('description', '')}"
+            )
+            horizons = strategy.get("horizons", {})
+            for horizon_key, payload in horizons.items():
+                label = payload.get("label", horizon_key)
+                print(f"  ➤ {label}: {payload.get('risk_focus', 'N/A')}")
+                for allocation in payload.get("allocations", []):
+                    percent = allocation.get("weight", 0) * 100
+                    amount = allocation.get("amount", 0)
+                    rationale = allocation.get("rationale", "")
+                    sample_assets = ", ".join(
+                        f"{asset['symbol']} ({asset['thesis']})"
+                        for asset in allocation.get("sample_assets", [])
+                    )
+                    print(
+                        f"    - {allocation.get('asset_class').upper()}: {percent:.1f}% "
+                        f"(${amount:,.2f})"
+                    )
+                    if rationale:
+                        print(f"      Rationale: {rationale}")
+                    if sample_assets:
+                        print(f"      Sample: {sample_assets}")
+
+        notes = plan.get("notes") or []
+        if notes:
+            print("\n🗒 Advisor Notes:")
+            for note in notes:
+                print(f"  - {note}")
+        print("\n" + "=" * 80)
+
 
 async def main():
     """
@@ -395,6 +470,21 @@ async def main():
         type=str,
         help="Optional output path for the PDF report",
     )
+    parser.add_argument(
+        "--multi-asset-budget",
+        type=float,
+        help="USD budget for a quick stocks/ETFs/crypto allocation plan",
+    )
+    parser.add_argument(
+        "--multi-asset-strategies",
+        type=str,
+        help="Comma-separated strategies (growth,balanced,defensive,income)",
+    )
+    parser.add_argument(
+        "--multi-asset-pdf-path",
+        type=str,
+        help="Optional output path for the multi-asset PDF report",
+    )
 
     args = parser.parse_args()
 
@@ -411,6 +501,34 @@ async def main():
 
     try:
         advisor = FinancialAdvisor()
+
+        if args.multi_asset_budget:
+            strategies = None
+            if args.multi_asset_strategies:
+                strategies = [
+                    item.strip()
+                    for item in args.multi_asset_strategies.split(",")
+                    if item.strip()
+                ]
+            plan = await advisor.plan_multi_asset_allocation(
+                budget=args.multi_asset_budget,
+                strategies=strategies,
+            )
+            try:
+                pdf_path = advisor.build_multi_asset_pdf(
+                    plan, output_path=args.multi_asset_pdf_path
+                )
+                logger.info(f"Multi-asset PDF saved to: {pdf_path}")
+                plan["pdf_path"] = pdf_path
+            except Exception as pdf_exc:
+                logger.warning(f"Failed to create multi-asset PDF: {pdf_exc}")
+            if args.output_format == "json":
+                import json
+
+                print(json.dumps(plan, indent=2, default=str))
+            else:
+                advisor.print_multi_asset_plan(plan)
+            return
 
         if args.alerts_only:
             # Generate alerts only
@@ -478,7 +596,7 @@ async def main():
 
                     chart_path = charts.create_portfolio_allocation_chart(
                         recommendations=recommendations,
-                        output_path="results/portfolio_allocation.html",
+                        output_path="results/portfolio_allocation.png",
                     )
 
                     logger.info(f"Portfolio allocation chart saved to: {chart_path}")
