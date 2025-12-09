@@ -1,6 +1,6 @@
 import asyncio
 import sys
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 import argparse
 from loguru import logger
@@ -8,9 +8,13 @@ from loguru import logger
 from .workflows.analysis_workflow import FinancialAnalysisWorkflow
 from .agents.recommendation_engine import TradingRecommendationEngine
 from .agents.report_analysis_agent import ReportAnalysisAgent
-from .config.settings import settings
+from .agents.channel_report_agent import ChannelReportAgent
+from .config.settings import settings, refresh_openai_api_key
 from .utils.helpers import save_analysis_results
 from .visualization import charts
+from .services.channel_stream_service import FinancialNewsChannelService
+from .services.price_trend_service import PriceTrendService
+from .reporting import ChannelPDFReportWriter
 
 
 class FinancialAdvisor:
@@ -21,6 +25,10 @@ class FinancialAdvisor:
             model_name=self.llm_model_name
         )
         self.report_analyzer = ReportAnalysisAgent(llm_model_name=self.llm_model_name)
+        self.channel_report_agent = ChannelReportAgent(llm_model_name=self.llm_model_name)
+        self.channel_service = FinancialNewsChannelService()
+        self.trend_service = PriceTrendService()
+        self.pdf_report_writer = ChannelPDFReportWriter()
 
     async def analyze_portfolio(
         self,
@@ -175,6 +183,55 @@ class FinancialAdvisor:
             logger.error(f"Quick analysis failed: {str(e)}")
             raise
 
+    async def generate_channel_pdf_report(
+        self,
+        symbols: List[str],
+        *,
+        portfolio_size: Optional[float] = None,
+        risk_tolerance: str = "medium",
+        time_horizon: str = "medium_term",
+        include_reports: bool = False,
+        existing_results: Optional[Dict[str, Any]] = None,
+        output_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Create a PDF report that merges channel streams, recommendations, and trends."""
+
+        reference_results = existing_results
+        if reference_results is None:
+            reference_results = await self.analyze_portfolio(
+                symbols=symbols,
+                portfolio_size=portfolio_size,
+                risk_tolerance=risk_tolerance,
+                time_horizon=time_horizon,
+                include_reports=include_reports,
+            )
+
+        channel_streams = reference_results.get("channel_streams") or {}
+        if not channel_streams:
+            channel_streams = await self.channel_service.collect_all_channels(symbols)
+            await self.channel_service.close()
+
+        price_trends = await self.trend_service.get_trends_for_symbols(symbols)
+
+        summary_payload = await self.channel_report_agent.execute(
+            {
+                "channel_payloads": channel_streams,
+                "price_trends": price_trends,
+                "recommendations": reference_results.get("recommendations", []),
+            }
+        )
+
+        pdf_path = self.pdf_report_writer.build_report(
+            summary_payload=summary_payload,
+            channel_payloads=channel_streams,
+            price_trends=price_trends,
+            recommendations=reference_results.get("recommendations", []),
+            symbols=symbols,
+            output_path=output_path,
+        )
+
+        return {"pdf_path": pdf_path, "summary": summary_payload}
+
     async def get_stock_alerts(self, symbols: List[str]) -> List[Dict[str, Any]]:
         """
         Generate real-time alerts for given symbols.
@@ -328,8 +385,21 @@ async def main():
     parser.add_argument(
         "--alerts-only", action="store_true", help="Generate alerts only"
     )
+    parser.add_argument(
+        "--channel-report",
+        action="store_true",
+        help="Generate the multichannel PDF report after analysis",
+    )
+    parser.add_argument(
+        "--pdf-path",
+        type=str,
+        help="Optional output path for the PDF report",
+    )
 
     args = parser.parse_args()
+
+    # Refresh the OpenAI API key so CLI runs pick up env changes immediately
+    refresh_openai_api_key()
 
     # Configure logging
     logger.remove()  # Remove default handler
@@ -421,6 +491,31 @@ async def main():
                 logger.warning(
                     f"Failed to generate portfolio allocation chart: {str(e)}"
                 )
+
+            if args.channel_report:
+                try:
+                    existing_reference = (
+                        results
+                        if isinstance(results, dict)
+                        and results.get("channel_streams")
+                        else None
+                    )
+                    pdf_info = await advisor.generate_channel_pdf_report(
+                        symbols=args.symbols,
+                        portfolio_size=args.portfolio_size,
+                        risk_tolerance=args.risk_tolerance,
+                        time_horizon=args.time_horizon,
+                        include_reports=args.analysis_type == "comprehensive",
+                        existing_results=existing_reference,
+                        output_path=args.pdf_path,
+                    )
+                    logger.info(
+                        f"Channel PDF report saved to: {pdf_info['pdf_path']}"
+                    )
+                except Exception as pdf_exc:
+                    logger.warning(
+                        f"Failed to create PDF channel report: {pdf_exc}"
+                    )
 
             # Display results based on output format
             if args.output_format == "json":

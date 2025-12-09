@@ -269,7 +269,6 @@ async def check_dependencies():
                 "pydantic",
                 "langchain",
                 "langgraph",
-                "yfinance",
                 "pandas",
                 "numpy",
                 "aiohttp",
@@ -290,7 +289,7 @@ async def check_dependencies():
         # Check environment variables
         import os
 
-        env_vars = ["OPENAI_API_KEY"]
+        env_vars = ["OPENAI_API_KEY", "FINNHUB_API_KEY"]
         for var in env_vars:
             dependencies[f"env_{var.lower()}"] = {
                 "status": "configured" if os.getenv(var) else "missing"
@@ -298,7 +297,8 @@ async def check_dependencies():
 
         # Check external services (simplified)
         dependencies["external_apis"] = {
-            "openai": "configured" if os.getenv("OPENAI_API_KEY") else "not_configured"
+            "openai": "configured" if os.getenv("OPENAI_API_KEY") else "not_configured",
+            "finnhub": "configured" if os.getenv("FINNHUB_API_KEY") else "not_configured",
         }
 
         return APIResponse(success=True, data=dependencies, message="Dependencies check completed")

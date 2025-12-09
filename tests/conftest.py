@@ -186,51 +186,123 @@ def sample_recommendations():
 
 
 @pytest.fixture
-def mock_yfinance_ticker():
-    """Mock yfinance Ticker for testing."""
-    mock_ticker = Mock()
-    mock_ticker.info = {
-        "longName": "Apple Inc.",
-        "currentPrice": 195.89,
-        "marketCap": 3000000000000,
-        "trailingPE": 28.5,
-        "trailingEps": 6.88,
-        "totalRevenue": 394328000000,
-        "netIncomeToCommon": 99803000000,
-        "debtToEquity": 1.73,
-        "currentRatio": 1.05,
-        "returnOnEquity": 0.175,
-        "returnOnAssets": 0.225,
-        "priceToBook": 5.02,
-        "dividendYield": 0.0047,
-        "beta": 1.29,
-        "fiftyTwoWeekHigh": 199.62,
-        "fiftyTwoWeekLow": 164.08,
+def sample_channel_streams():
+    return {
+        "top_market_crypto": {
+            "channel_id": "top_market_crypto",
+            "title": "Top Market & Crypto Headlines",
+            "items": [
+                {
+                    "title": "Markets rally on soft CPI",
+                    "summary": "Major indices advanced after inflation cooled.",
+                    "source": "Reuters",
+                    "published_at": datetime.now().isoformat(),
+                },
+                {
+                    "title": "Bitcoin holds above 60k",
+                    "summary": "Crypto markets consolidate gains.",
+                    "source": "CoinDesk",
+                    "published_at": datetime.now().isoformat(),
+                },
+            ],
+        },
+        "open_source_agencies": {
+            "channel_id": "open_source_agencies",
+            "title": "Open News Agencies",
+            "items": [
+                {
+                    "title": "Guardian: policy outlook improves",
+                    "summary": "Central banks signal patience.",
+                    "source": "Guardian",
+                    "published_at": datetime.now().isoformat(),
+                }
+            ],
+        },
     }
 
-    # Mock historical data
-    import pandas as pd
-    import numpy as np
 
-    dates = pd.date_range(end=datetime.now(), periods=100, freq="D")
-    prices = 190 + np.cumsum(np.random.randn(100) * 0.5)
+@pytest.fixture
+def sample_price_trends():
+    return {
+        "AAPL": {
+            "symbol": "AAPL",
+            "current_price": 195.0,
+            "pricing_timestamp": datetime.now().isoformat(),
+            "trends": {
+                "last_month": {
+                    "start": 180.0,
+                    "end": 195.0,
+                    "change": 15.0,
+                    "percent_change": 8.3,
+                    "direction": "bullish",
+                },
+                "last_week": {
+                    "start": 190.0,
+                    "end": 195.0,
+                    "change": 5.0,
+                    "percent_change": 2.6,
+                    "direction": "bullish",
+                },
+                "last_day": {
+                    "start": 194.0,
+                    "end": 195.0,
+                    "change": 1.0,
+                    "percent_change": 0.5,
+                    "direction": "bullish",
+                },
+                "last_hour": {
+                    "start": 194.5,
+                    "end": 195.0,
+                    "change": 0.5,
+                    "percent_change": 0.26,
+                    "direction": "bullish",
+                },
+            },
+        }
+    }
 
-    mock_history = pd.DataFrame(
-        {
-            "Open": prices * 0.99,
-            "High": prices * 1.02,
-            "Low": prices * 0.98,
-            "Close": prices,
-            "Volume": np.random.randint(20000000, 60000000, 100),
-        },
-        index=dates,
-    )
 
-    mock_ticker.history.return_value = mock_history
-    mock_ticker.quarterly_financials = pd.DataFrame()
-    mock_ticker.financials = pd.DataFrame()
+@pytest.fixture
+def mock_finnhub_client():
+    """Mock Finnhub client for testing."""
+    client = AsyncMock()
 
-    return mock_ticker
+    client.get_quote.return_value = {"c": 195.5, "o": 193.0, "v": 25000000}
+
+    async def get_candles(symbol, resolution, start, end):
+        base = 150.0
+        closes = [base + i for i in range(160)]
+        return {
+            "s": "ok",
+            "c": closes,
+            "h": [value + 2 for value in closes],
+            "l": [value - 2 for value in closes],
+        }
+
+    client.get_candles.side_effect = get_candles
+    client.get_company_profile.return_value = {
+        "name": "Apple Inc.",
+        "marketCapitalization": 3_000_000_000_000,
+    }
+    client.close.return_value = None
+    return client
+
+
+@pytest.fixture
+def mock_binance_client():
+    """Mock Binance client for testing."""
+    client = AsyncMock()
+
+    async def get_klines(symbol, interval, limit=500, start=None, end=None):
+        return [
+            [0, 100.0 + i, 102.0 + i, 98.0 + i, 101.0 + i, 1500 + i]
+            for i in range(limit)
+        ]
+
+    client.get_klines.side_effect = get_klines
+    client.get_price.return_value = 101.0
+    client.close.return_value = None
+    return client
 
 
 @pytest.fixture

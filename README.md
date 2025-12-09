@@ -12,6 +12,7 @@ A sophisticated multi-agent financial analysis system that uses **LangGraph**, *
 - **SEC Filing Analysis**: Deep analysis of 10-K and 10-Q reports using AI
 - **Technical Analysis**: Comprehensive technical indicators and chart pattern recognition
 - **Sentiment Analysis**: AI-powered sentiment analysis of news and social media
+- **WebSocket News Channels**: Dedicated multi-stream WebSockets for tier-one financial news, open agencies, and real-time pricing
 - **Portfolio Optimization**: Intelligent portfolio construction with risk management
 - **Trading Recommendations**: Buy/Sell/Hold recommendations with confidence scores
 - **Risk Assessment**: Multi-factor risk analysis and position sizing
@@ -67,6 +68,7 @@ Required environment variables:
 
 ```env
 OPENAI_API_KEY=your_openai_api_key_here
+FINNHUB_API_KEY=your_finnhub_api_key_here
 # Optional but recommended
 ALPHA_VANTAGE_API_KEY=your_alpha_vantage_api_key_here
 FINANCIAL_DATA_API_KEY=your_financial_data_api_key_here
@@ -85,23 +87,55 @@ DEFAULT_PORTFOLIO_SIZE=100000
 
 ```bash
 # Basic analysis
-tradegraph AAPL MSFT GOOGL
+uv run tradegraph AAPL MSFT GOOGL
 
 # Comprehensive analysis with custom parameters
-tradegraph AAPL MSFT GOOGL \
+uv run tradegraph AAPL MSFT GOOGL \
   --portfolio-size 250000 \
   --risk-tolerance aggressive \
   --time-horizon long_term \
   --analysis-type comprehensive
 
 # Quick analysis
-tradegraph TSLA NVDA --analysis-type quick
+uv run tradegraph TSLA NVDA --analysis-type quick
 
 # Generate alerts only
-tradegraph AAPL --alerts-only
+uv run tradegraph AAPL --alerts-only
 
 # JSON output
-tradegraph AAPL MSFT --output-format json > analysis.json
+uv run tradegraph AAPL MSFT --output-format json > analysis.json
+```
+
+### Real-Time WebSocket Channels
+
+The repository now ships with a FastAPI service that exposes three dedicated WebSocket channels:
+
+1. `top_market_crypto` – Reuters, CNBC, WSJ, MarketWatch, and CoinDesk headlines
+2. `open_source_agencies` – Guardian, BBC, Al Jazeera, NPR, and Financial Express (all free/open access)
+3. `live_price_stream` – Finnhub (equities) + Binance (crypto) price snapshots with last year/month/day/hour trends
+
+Launch the channel server with `uv` and subscribe from any WebSocket client:
+
+```bash
+uv run uvicorn tradegraph_financial_advisor.server.channel_server:app --reload
+```
+
+Example subscription (JavaScript snippet):
+
+```js
+const socket = new WebSocket('ws://127.0.0.1:8000/ws/top_market_crypto?symbols=AAPL,MSFT,BTC-USD');
+socket.onmessage = (event) => {
+  console.log(JSON.parse(event.data));
+};
+```
+
+### PDF Financial Reports
+
+Financial agents can now condense all three channels into a PDF that covers news context, buy/hold/sell guidance, risk mix, and multi-horizon price trends. Trend snapshots are limited to month/week/day/hour windows so the report explicitly reflects month-to-date momentum.
+
+```bash
+uv run tradegraph AAPL BTC-USD --analysis-type comprehensive --channel-report \
+  --pdf-path results/aapl_crypto_multichannel.pdf
 ```
 
 ### Python API Usage
@@ -284,7 +318,7 @@ GOOGL: HOLD (Confidence: 65.0%)
 
 - **LangGraph**: Workflow orchestration and agent coordination
 - **OpenAI GPT-4**: Natural language processing and analysis
-- **yfinance**: Financial data retrieval
+- **Finnhub** (equities) and **Binance** (crypto) for live/historical pricing
 - **pandas/numpy**: Data processing and analysis
 - **aiohttp**: Async HTTP requests
 - **pydantic**: Data validation and serialization

@@ -176,7 +176,7 @@ class ReportAnalysisAgent(BaseAgent):
             response = await self.llm.ainvoke([HumanMessage(content=analysis_prompt)])
 
             try:
-                analysis_data = json.loads(response.content)
+                analysis_data = self._parse_json_response(response.content)
                 analysis_data["report_type"] = report_type
                 analysis_data["filing_url"] = filing.get("url", "")
                 analysis_data["analysis_date"] = datetime.now().isoformat()
@@ -193,6 +193,25 @@ class ReportAnalysisAgent(BaseAgent):
         except Exception as e:
             logger.error(f"Error analyzing single report for {symbol}: {str(e)}")
             return {"error": str(e), "report_type": report_type}
+
+    def _parse_json_response(self, payload: str) -> Dict[str, Any]:
+        """Accept JSON output even if wrapped in code fences or commentary."""
+
+        cleaned = (payload or "").strip()
+        if not cleaned:
+            raise json.JSONDecodeError("Empty response", payload, 0)
+
+        if "```" in cleaned:
+            segments = [segment.strip() for segment in cleaned.split("```") if segment.strip()]
+            if segments:
+                cleaned = segments[-1]
+
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            cleaned = cleaned[start : end + 1]
+
+        return json.loads(cleaned)
 
     async def _generate_comprehensive_summary(
         self, symbol: str, report_analyses: List[Dict[str, Any]]

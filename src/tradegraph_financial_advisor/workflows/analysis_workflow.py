@@ -10,6 +10,7 @@ from ..agents.news_agent import NewsReaderAgent
 from ..agents.financial_agent import FinancialAnalysisAgent
 from ..agents.recommendation_engine import TradingRecommendationEngine
 from ..services.local_scraping_service import LocalScrapingService
+from ..services.channel_stream_service import FinancialNewsChannelService
 from ..models.recommendations import (
     TradingRecommendation,
     RecommendationType,
@@ -31,6 +32,7 @@ class AnalysisState(TypedDict):
     messages: List[Any]
     next_step: str
     error_messages: List[str]
+    channel_streams: Dict[str, Any]
 
 
 class FinancialAnalysisWorkflow:
@@ -49,6 +51,7 @@ class FinancialAnalysisWorkflow:
             model_name=self.llm_model_name
         )
         self.local_scraping_service = scraping_service or LocalScrapingService()
+        self.channel_service = FinancialNewsChannelService()
         self.workflow = None
         self._build_workflow()
 
@@ -102,6 +105,7 @@ class FinancialAnalysisWorkflow:
             messages=[],
             next_step="collect_news",
             error_messages=[],
+            channel_streams={},
         )
 
         try:
@@ -121,6 +125,7 @@ class FinancialAnalysisWorkflow:
                 "financial_data": result.get("financial_data", {}),
                 "recommendations": result.get("recommendations", []),
                 "analysis_context": result.get("analysis_context", {}),
+                "channel_streams": result.get("channel_streams", {}),
             }
 
             return analysis_result
@@ -133,6 +138,7 @@ class FinancialAnalysisWorkflow:
             await self.news_agent.stop()
             await self.financial_agent.stop()
             await self.local_scraping_service.stop()
+            await self.channel_service.close()
 
     async def _collect_news(self, state: AnalysisState) -> AnalysisState:
         try:
@@ -171,6 +177,17 @@ class FinancialAnalysisWorkflow:
                 "total_count": len(combined_news),
                 "collection_timestamp": datetime.now().isoformat(),
             }
+
+            # Capture websocket channel payloads for downstream reporting
+            try:
+                channel_payloads = await self.channel_service.collect_all_channels(
+                    state["symbols"]
+                )
+                state["channel_streams"] = channel_payloads
+            except Exception as channel_exc:
+                logger.warning(
+                    f"Failed to collect channel streams: {channel_exc}"
+                )
 
             state["messages"].append(
                 AIMessage(content=f"Collected {len(combined_news)} news articles")
