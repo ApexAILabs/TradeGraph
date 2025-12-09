@@ -1,7 +1,7 @@
 import asyncio
 import pytest
 import os
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import AsyncMock
 from datetime import datetime, timedelta
 
 from tradegraph_financial_advisor.models.financial_data import NewsArticle
