@@ -1,8 +1,10 @@
+from pathlib import Path
+
 import plotly.graph_objects as go
 
 
 def create_portfolio_allocation_chart(
-    recommendations, output_path="portfolio_allocation.html"
+    recommendations, output_path="results/portfolio_allocation.png"
 ):
     """
     Creates a pie chart showing portfolio allocation
@@ -43,8 +45,16 @@ def create_portfolio_allocation_chart(
 
     fig.update_layout(title="Portfolio Allocation Recommendation", showlegend=True)
 
-    # Save to HTML file
-    fig.write_html(output_path)
-    print(f"Chart saved to: {output_path}")
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
 
-    return output_path
+    try:
+        fig.write_image(str(path))
+    except ValueError as exc:
+        raise RuntimeError(
+            "Plotly static image export requires the kaleido package."
+        ) from exc
+
+    print(f"Chart saved to: {path}")
+
+    return str(path)

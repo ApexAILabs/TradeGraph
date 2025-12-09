@@ -39,7 +39,9 @@ class ChannelReportAgent(BaseAgent):
             )
 
     async def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        channel_payloads = input_data.get("channel_payloads", {})
+        channel_payloads = self._filter_channel_payloads(
+            input_data.get("channel_payloads", {})
+        )
         price_trends = input_data.get("price_trends", {})
         recommendations = input_data.get("recommendations", [])
 
@@ -54,14 +56,18 @@ class ChannelReportAgent(BaseAgent):
             prompt_payload = {
                 "channel_payloads": channel_payloads,
                 "price_trends": price_trends,
-                "recommendations": recommendations,
+                "recommendation_snapshot": self._summarize_recommendations(
+                    recommendations
+                ),
             }
             prompt = (
-                "You are TradeGraph's senior analyst. Combine the multichannel news feeds, "
-                "risk context, and trend data below into a concise JSON summary with "
-                "keys: news_takeaways (list of strings), risk_assessment (string), "
-                "buy_or_sell_view (string), trend_commentary (string), key_stats (object), "
-                "and summary_text (string)."
+                "You are TradeGraph's senior portfolio strategist. Blend the curated news "
+                "feeds, short-term price action, and active recommendations into guidance "
+                "for an informed investor. Respond in JSON with keys: summary_text (2 "
+                "advisor-style paragraphs), advisor_memo (actionable paragraph), "
+                "news_takeaways (list of 3 strings), guidance_points (list of next "
+                "actions), risk_assessment, buy_or_sell_view, trend_commentary, "
+                "price_action_notes (list), and key_stats (object describing counts)."
             )
             response = await self.llm.ainvoke(
                 [HumanMessage(content=f"{prompt}\nINPUT:\n{json.dumps(prompt_payload)[:6000]}")]
@@ -89,22 +95,41 @@ class ChannelReportAgent(BaseAgent):
                 f"{payload.get('title', channel_id)} highlights: {titles}"
             )
 
+        key_stats = self._build_key_stats(channel_payloads, recommendations)
+
         risk_counts: Dict[str, int] = {}
         for rec in recommendations:
             risk = rec.get("risk_level", "unknown")
             risk_counts[risk] = risk_counts.get(risk, 0) + 1
 
         buy_view = "hold"
-        buy_votes = sum(1 for rec in recommendations if "buy" in str(rec.get("recommendation", "")).lower())
-        sell_votes = sum(1 for rec in recommendations if "sell" in str(rec.get("recommendation", "")).lower())
+        buy_votes = sum(
+            1
+            for rec in recommendations
+            if "buy" in str(rec.get("recommendation", "")).lower()
+        )
+        sell_votes = sum(
+            1
+            for rec in recommendations
+            if "sell" in str(rec.get("recommendation", "")).lower()
+        )
         if buy_votes > sell_votes:
             buy_view = "buy"
         elif sell_votes > buy_votes:
             buy_view = "reduce"
 
         trend_commentary = self._summarize_trends(price_trends)
-        summary_text = generate_summary(" ".join(news_takeaways)) or (
-            "Latest headlines aggregated across equity, crypto, and free news agencies."
+        price_action_notes = self._build_price_notes(price_trends)
+        guidance_points = self._build_guidance_points(recommendations, price_action_notes)
+
+        narrative_seed = " ".join(news_takeaways[:3]) or "Mixed market color."
+        summary_text = (
+            generate_summary(narrative_seed)
+            or "Fresh headlines suggest a balanced tape across equities and crypto."
+        )
+        advisor_memo = (
+            f"My read: {buy_view.upper()} bias while monitoring {risk_counts or {'unknown': 0}}. "
+            f"Trend check: {trend_commentary}."
         )
 
         return {
@@ -112,11 +137,116 @@ class ChannelReportAgent(BaseAgent):
             "risk_assessment": f"Risk mix: {risk_counts or {'unknown': 0}}",
             "buy_or_sell_view": buy_view,
             "trend_commentary": trend_commentary,
-            "key_stats": {
-                "recommendation_count": len(recommendations),
-                "channels": list(channel_payloads.keys()),
-            },
+            "key_stats": key_stats,
             "summary_text": summary_text,
+            "advisor_memo": advisor_memo,
+            "price_action_notes": price_action_notes,
+            "guidance_points": guidance_points,
+        }
+
+    def _filter_channel_payloads(
+        self, channel_payloads: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        return {
+            channel_id: payload
+            for channel_id, payload in channel_payloads.items()
+            if channel_id != "open_source_agencies"
+        }
+
+    def _build_key_stats(
+        self,
+        channel_payloads: Dict[str, Any],
+        recommendations: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        total_items = sum(len(payload.get("items", [])) for payload in channel_payloads.values())
+        covered_symbols = {
+            symbol
+            for payload in channel_payloads.values()
+            for item in payload.get("items", [])
+            for symbol in item.get("matched_symbols", [])
+            if symbol
+        }
+        return {
+            "channel_count": len(channel_payloads),
+            "headline_count": total_items,
+            "recommendation_count": len(recommendations),
+            "covered_symbols": sorted(covered_symbols),
+        }
+
+    def _build_price_notes(self, price_trends: Dict[str, Any]) -> List[str]:
+        notes: List[str] = []
+        for symbol, payload in price_trends.items():
+            trends = payload.get("trends", {})
+            day = trends.get("last_day", {}).get("percent_change")
+            week = trends.get("last_week", {}).get("percent_change")
+            hour = trends.get("last_hour", {}).get("percent_change")
+            pieces = []
+            if week is not None:
+                pieces.append(f"{week:+.1f}% weekly")
+            if day is not None:
+                pieces.append(f"{day:+.1f}% daily")
+            if hour is not None:
+                pieces.append(f"{hour:+.1f}% hourly")
+            if pieces:
+                notes.append(f"{symbol}: {' / '.join(pieces)} post-close move")
+        return notes
+
+    def _build_guidance_points(
+        self,
+        recommendations: List[Dict[str, Any]],
+        price_notes: List[str],
+    ) -> List[str]:
+        guidance: List[str] = []
+        for rec in recommendations[:3]:
+            symbol = rec.get("symbol", "")
+            rec_text = rec.get("recommendation", "hold").replace("_", " ")
+            allocation = rec.get("recommended_allocation")
+            allocation_text = (
+                f"targeting {allocation:.1%} weight"
+                if isinstance(allocation, (int, float))
+                else ""
+            )
+            note = rec.get("analyst_notes") or ", ".join(rec.get("key_factors", [])[:2])
+            clause = f"{symbol}: {rec_text.title()} {allocation_text}".strip()
+            if note:
+                clause = f"{clause} — {note}"
+            guidance.append(clause)
+
+        if price_notes:
+            guidance.append(f"Monitor price tape: {price_notes[0]}")
+        return guidance
+
+    def _summarize_recommendations(
+        self, recommendations: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        if not recommendations:
+            return {"total": 0}
+
+        counts: Dict[str, int] = {}
+        top_symbols: List[str] = []
+        highest_conf = sorted(
+            recommendations,
+            key=lambda rec: rec.get("confidence_score", 0),
+            reverse=True,
+        )[:3]
+        for rec in recommendations:
+            name = str(rec.get("recommendation", "unknown")).lower()
+            counts[name] = counts.get(name, 0) + 1
+            if rec.get("symbol"):
+                top_symbols.append(rec["symbol"])
+
+        return {
+            "total": len(recommendations),
+            "counts": counts,
+            "top_conviction": [
+                {
+                    "symbol": rec.get("symbol"),
+                    "confidence_score": rec.get("confidence_score"),
+                    "recommendation": rec.get("recommendation"),
+                }
+                for rec in highest_conf
+            ],
+            "symbols": top_symbols,
         }
 
     def _summarize_trends(self, price_trends: Dict[str, Any]) -> str:

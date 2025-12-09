@@ -203,10 +203,12 @@ class FinancialNewsChannelService:
         max_items_per_source: int = 5,
         max_items_per_channel: int = 25,
         price_service: Optional[PriceTrendService] = None,
+        include_open_agencies: bool = False,
     ) -> None:
         self.max_items_per_source = max_items_per_source
         self.max_items_per_channel = max_items_per_channel
         self.price_service = price_service or PriceTrendService()
+        self.include_open_agencies = include_open_agencies
         self._session_lock = asyncio.Lock()
         self._session: Optional[aiohttp.ClientSession] = None
 
@@ -222,19 +224,19 @@ class FinancialNewsChannelService:
             return self._session
 
     def describe_channels(self) -> List[Dict[str, Any]]:
-        return [definition.metadata() for definition in CHANNEL_REGISTRY.values()]
+        return [CHANNEL_REGISTRY[channel].metadata() for channel in self._iter_channels()]
 
     async def collect_all_channels(
         self, symbols: Optional[Sequence[str]] = None
     ) -> Dict[str, Any]:
         tasks = [
             self.fetch_channel_payload(channel.value, symbols)
-            for channel in ChannelType
+            for channel in self._iter_channels()
         ]
         payloads = await asyncio.gather(*tasks, return_exceptions=True)
 
         result: Dict[str, Any] = {}
-        for channel, payload in zip(ChannelType, payloads):
+        for channel, payload in zip(self._iter_channels(), payloads):
             if isinstance(payload, Exception):
                 logger.warning(
                     f"Failed to collect channel {channel.value}: {payload}"
@@ -242,6 +244,15 @@ class FinancialNewsChannelService:
                 continue
             result[channel.value] = payload
         return result
+
+    def _iter_channels(self):
+        for channel in ChannelType:
+            if (
+                not self.include_open_agencies
+                and channel == ChannelType.OPEN_SOURCE_AGENCIES
+            ):
+                continue
+            yield channel
 
     async def fetch_channel_payload(
         self, channel_id: str, symbols: Optional[Sequence[str]] = None
