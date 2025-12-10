@@ -70,7 +70,11 @@ class ChannelReportAgent(BaseAgent):
                 "price_action_notes (list), and key_stats (object describing counts)."
             )
             response = await self.llm.ainvoke(
-                [HumanMessage(content=f"{prompt}\nINPUT:\n{json.dumps(prompt_payload)[:6000]}")]
+                [
+                    HumanMessage(
+                        content=f"{prompt}\nINPUT:\n{json.dumps(prompt_payload)[:6000]}"
+                    )
+                ]
             )
             data = json.loads(response.content)
             fallback.update({k: v for k, v in data.items() if v})
@@ -120,7 +124,9 @@ class ChannelReportAgent(BaseAgent):
 
         trend_commentary = self._summarize_trends(price_trends)
         price_action_notes = self._build_price_notes(price_trends)
-        guidance_points = self._build_guidance_points(recommendations, price_action_notes)
+        guidance_points = self._build_guidance_points(
+            recommendations, price_action_notes
+        )
 
         narrative_seed = " ".join(news_takeaways[:3]) or "Mixed market color."
         summary_text = (
@@ -158,7 +164,9 @@ class ChannelReportAgent(BaseAgent):
         channel_payloads: Dict[str, Any],
         recommendations: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
-        total_items = sum(len(payload.get("items", [])) for payload in channel_payloads.values())
+        total_items = sum(
+            len(payload.get("items", [])) for payload in channel_payloads.values()
+        )
         covered_symbols = {
             symbol
             for payload in channel_payloads.values()

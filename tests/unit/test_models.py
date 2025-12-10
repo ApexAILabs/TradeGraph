@@ -312,7 +312,7 @@ class TestRecommendationModels:
         )
 
         # Test dict conversion
-        rec_dict = recommendation.dict()
+        rec_dict = recommendation.model_dump()
         assert rec_dict["symbol"] == "AAPL"
         assert rec_dict["recommendation"] == "buy"
         assert rec_dict["risk_level"] == "medium"
@@ -320,7 +320,7 @@ class TestRecommendationModels:
         # Test JSON serialization
         import json
 
-        json_str = recommendation.json()
+        json_str = recommendation.model_dump_json()
         parsed = json.loads(json_str)
         assert parsed["symbol"] == "AAPL"
 

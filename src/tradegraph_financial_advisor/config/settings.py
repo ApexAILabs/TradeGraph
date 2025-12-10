@@ -3,20 +3,24 @@ import os
 
 from dotenv import load_dotenv
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 load_dotenv()
 
 
 class Settings(BaseSettings):
-    openai_api_key: str = Field("", env="OPENAI_API_KEY")
-    finnhub_api_key: str = Field("", env="FINNHUB_API_KEY")
-    alpha_vantage_api_key: Optional[str] = Field(None, env="ALPHA_VANTAGE_API_KEY")
-    financial_data_api_key: Optional[str] = Field(None, env="FINANCIAL_DATA_API_KEY")
+    model_config = SettingsConfigDict(
+        env_file=".env", case_sensitive=False, extra="ignore"
+    )
 
-    log_level: str = Field("INFO", env="LOG_LEVEL")
-    max_concurrent_agents: int = Field(5, env="MAX_CONCURRENT_AGENTS")
-    analysis_timeout_seconds: int = Field(30, env="ANALYSIS_TIMEOUT_SECONDS")
+    openai_api_key: str = Field(default="")
+    finnhub_api_key: str = Field(default="")
+    alpha_vantage_api_key: Optional[str] = Field(default=None)
+    financial_data_api_key: Optional[str] = Field(default=None)
+
+    log_level: str = Field(default="INFO")
+    max_concurrent_agents: int = Field(default=5)
+    analysis_timeout_seconds: int = Field(default=30)
 
     news_sources: List[str] = Field(
         default_factory=lambda: [
@@ -25,20 +29,11 @@ class Settings(BaseSettings):
             "yahoo-finance",
             "marketwatch",
             "cnbc",
-        ],
-        env="NEWS_SOURCES",
+        ]
     )
-    analysis_depth: str = Field("detailed", env="ANALYSIS_DEPTH")
-    default_portfolio_size: float = Field(100000.0, env="DEFAULT_PORTFOLIO_SIZE")
-    news_db_path: str = Field("tradegraph.duckdb", env="NEWS_DB_PATH")
-
-    model_config = {"env_file": ".env", "case_sensitive": False, "extra": "ignore"}
-
-    @classmethod
-    def get_news_sources_list(cls, v: str) -> List[str]:
-        if isinstance(v, str):
-            return [source.strip() for source in v.split(",")]
-        return v
+    analysis_depth: str = Field(default="detailed")
+    default_portfolio_size: float = Field(default=100000.0)
+    news_db_path: str = Field(default="tradegraph.duckdb")
 
 
 settings = Settings()

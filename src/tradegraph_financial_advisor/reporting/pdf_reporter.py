@@ -97,7 +97,9 @@ class ChannelPDFReportWriter:
             f"Trend Notes: {summary_payload.get('trend_commentary', 'n/a')}",
         )
 
-        cursor_y = self._draw_key_stats(doc, cursor_y, summary_payload.get("key_stats", {}))
+        cursor_y = self._draw_key_stats(
+            doc, cursor_y, summary_payload.get("key_stats", {})
+        )
 
         cursor_y = self._draw_channel_breakdown(doc, cursor_y, channel_payloads)
         cursor_y = self._draw_recommendations(doc, cursor_y, recommendations)
@@ -191,7 +193,9 @@ class ChannelPDFReportWriter:
             doc.drawString(self.margin, cursor_y, payload.get("title", channel_id))
             cursor_y -= 14
             doc.setFont("Helvetica", 10)
-            highlights = [item.get("title", "") for item in payload.get("items", [])[:3]]
+            highlights = [
+                item.get("title", "") for item in payload.get("items", [])[:3]
+            ]
             body = "; ".join(highlights) or "No items collected"
             for line in self._wrap_text(body, 90):
                 doc.drawString(self.margin + 10, cursor_y, f"- {line}")

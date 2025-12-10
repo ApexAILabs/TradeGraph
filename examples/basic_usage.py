@@ -229,7 +229,9 @@ async def main():
 
     # Check environment first
     if not check_environment():
-        print("\n⚠️ Please configure your environment variables before running examples")
+        print(
+            "\n⚠️ Please configure your environment variables before running examples"
+        )
         return
 
     # Run examples

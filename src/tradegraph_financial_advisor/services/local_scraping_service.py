@@ -83,7 +83,9 @@ class LocalScrapingService:
                         all_articles.append(article)
                         new_articles.append(article)
                     except Exception as scrape_exc:
-                        logger.warning(f"Failed to scrape article {result.get('url')}: {scrape_exc}")
+                        logger.warning(
+                            f"Failed to scrape article {result.get('url')}: {scrape_exc}"
+                        )
 
         if new_articles:
             await self._persist_articles(new_articles)

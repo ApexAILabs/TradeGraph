@@ -155,6 +155,8 @@ class TestNewsReaderAgent:
 
         assert 0.0 <= impact_score <= 1.0
         assert impact_score > 0.5  # Should be higher due to symbol mention in title
+
+
 class TestReportAnalysisAgent:
     """Test ReportAnalysisAgent functionality."""
 

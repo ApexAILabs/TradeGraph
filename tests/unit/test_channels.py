@@ -21,7 +21,9 @@ class _DummyPriceService:
 
 @pytest.mark.asyncio
 async def test_channel_service_price_payload(sample_price_trends):
-    service = FinancialNewsChannelService(price_service=_DummyPriceService(sample_price_trends))
+    service = FinancialNewsChannelService(
+        price_service=_DummyPriceService(sample_price_trends)
+    )
     payload = await service.fetch_channel_payload(
         ChannelType.LIVE_PRICE_STREAM.value, symbols=["AAPL"]
     )
@@ -48,7 +50,9 @@ async def test_channel_report_agent_fallback(
     assert summary.get("key_stats", {}).get("channel_count") == 1
 
 
-def test_pdf_report_writer(tmp_path, sample_channel_streams, sample_price_trends, sample_recommendations):
+def test_pdf_report_writer(
+    tmp_path, sample_channel_streams, sample_price_trends, sample_recommendations
+):
     writer = ChannelPDFReportWriter()
     output_file = tmp_path / "report.pdf"
     summary_payload = {
@@ -60,7 +64,11 @@ def test_pdf_report_writer(tmp_path, sample_channel_streams, sample_price_trends
         "advisor_memo": "Maintain constructive stance with risk controls.",
         "price_action_notes": ["AAPL: +2.5% weekly"],
         "guidance_points": ["Add MSFT on earnings strength"],
-        "key_stats": {"channel_count": 1, "headline_count": 2, "recommendation_count": 2},
+        "key_stats": {
+            "channel_count": 1,
+            "headline_count": 2,
+            "recommendation_count": 2,
+        },
     }
     pdf_path = writer.build_report(
         summary_payload=summary_payload,

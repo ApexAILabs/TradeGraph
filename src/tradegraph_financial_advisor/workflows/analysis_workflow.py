@@ -52,8 +52,9 @@ class FinancialAnalysisWorkflow:
         )
         self.news_agent = news_agent or NewsReaderAgent()
         self.financial_agent = financial_agent or FinancialAnalysisAgent()
-        self.recommendation_engine = recommendation_engine or TradingRecommendationEngine(
-            model_name=self.llm_model_name
+        self.recommendation_engine = (
+            recommendation_engine
+            or TradingRecommendationEngine(model_name=self.llm_model_name)
         )
         self.local_scraping_service = scraping_service or LocalScrapingService()
         self.channel_service = channel_service or FinancialNewsChannelService()
@@ -89,7 +90,6 @@ class FinancialAnalysisWorkflow:
         risk_tolerance: str = "medium",
         time_horizon: str = "medium_term",
     ) -> Dict[str, Any]:
-
         if portfolio_size is None:
             portfolio_size = settings.default_portfolio_size
 
@@ -190,9 +190,7 @@ class FinancialAnalysisWorkflow:
                 )
                 state["channel_streams"] = channel_payloads
             except Exception as channel_exc:
-                logger.warning(
-                    f"Failed to collect channel streams: {channel_exc}"
-                )
+                logger.warning(f"Failed to collect channel streams: {channel_exc}")
 
             state["messages"].append(
                 AIMessage(content=f"Collected {len(combined_news)} news articles")
@@ -482,9 +480,9 @@ class FinancialAnalysisWorkflow:
                 import json
 
                 portfolio_data = json.loads(response.content)
-                portfolio_data["recommendations"] = (
-                    recommendations  # Ensure recommendations are included
-                )
+                portfolio_data[
+                    "recommendations"
+                ] = recommendations  # Ensure recommendations are included
                 state["portfolio_recommendation"] = portfolio_data
 
             except Exception as e:
