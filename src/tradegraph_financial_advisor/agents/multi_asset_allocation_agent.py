@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from loguru import logger
 
@@ -49,7 +49,9 @@ def _build_strategy_library() -> Dict[str, Dict[str, Dict[str, AllocationSuggest
         ],
     }
 
-    def suggestion(asset_class: str, weight: float, rationale: str) -> AllocationSuggestion:
+    def suggestion(
+        asset_class: str, weight: float, rationale: str
+    ) -> AllocationSuggestion:
         return AllocationSuggestion(
             asset_class=asset_class,
             weight=weight,
@@ -61,10 +63,14 @@ def _build_strategy_library() -> Dict[str, Dict[str, Dict[str, AllocationSuggest
         "growth": {
             "1w": {
                 "stocks": suggestion(
-                    "stocks", 0.35, "Stay liquid in quality mega caps while watching catalysts."
+                    "stocks",
+                    0.35,
+                    "Stay liquid in quality mega caps while watching catalysts.",
                 ),
                 "etfs": suggestion(
-                    "etfs", 0.15, "Use QQQ/ARKK for beta exposure without security selection."
+                    "etfs",
+                    0.15,
+                    "Use QQQ/ARKK for beta exposure without security selection.",
                 ),
                 "crypto": suggestion(
                     "crypto", 0.50, "Lean into BTC/ETH momentum for tactical upside."
@@ -107,11 +113,11 @@ def _build_strategy_library() -> Dict[str, Dict[str, Dict[str, AllocationSuggest
             },
             "1m": {
                 "stocks": suggestion(
-                    "stocks", 0.4, "Add cyclicals selectively as macro visibility improves."
+                    "stocks",
+                    0.4,
+                    "Add cyclicals selectively as macro visibility improves.",
                 ),
-                "etfs": suggestion(
-                    "etfs", 0.4, "Core passive ETFs to anchor risk."
-                ),
+                "etfs": suggestion("etfs", 0.4, "Core passive ETFs to anchor risk."),
                 "crypto": suggestion(
                     "crypto", 0.2, "Keep crypto beta but size for volatility."
                 ),
@@ -141,23 +147,15 @@ def _build_strategy_library() -> Dict[str, Dict[str, Dict[str, AllocationSuggest
                 ),
             },
             "1m": {
-                "stocks": suggestion(
-                    "stocks", 0.3, "Income-oriented equities."
-                ),
+                "stocks": suggestion("stocks", 0.3, "Income-oriented equities."),
                 "etfs": suggestion(
                     "etfs", 0.55, "Blend IG bonds with broad equity ETFs."
                 ),
-                "crypto": suggestion(
-                    "crypto", 0.15, "Cap risk but allow for upside."
-                ),
+                "crypto": suggestion("crypto", 0.15, "Cap risk but allow for upside."),
             },
             "1y": {
-                "stocks": suggestion(
-                    "stocks", 0.35, "Quality and value tilt."
-                ),
-                "etfs": suggestion(
-                    "etfs", 0.5, "VOO/TLT core plus dividend ETFs."
-                ),
+                "stocks": suggestion("stocks", 0.35, "Quality and value tilt."),
+                "etfs": suggestion("etfs", 0.5, "VOO/TLT core plus dividend ETFs."),
                 "crypto": suggestion(
                     "crypto", 0.15, "Long-dated call option sized exposure."
                 ),
@@ -171,31 +169,17 @@ def _build_strategy_library() -> Dict[str, Dict[str, Dict[str, AllocationSuggest
                 "etfs": suggestion(
                     "etfs", 0.55, "Covered-call and bond ETFs for yield."
                 ),
-                "crypto": suggestion(
-                    "crypto", 0.10, "Stablecoin yield or staking."
-                ),
+                "crypto": suggestion("crypto", 0.10, "Stablecoin yield or staking."),
             },
             "1m": {
-                "stocks": suggestion(
-                    "stocks", 0.4, "REITs + utilities blend."
-                ),
-                "etfs": suggestion(
-                    "etfs", 0.5, "Bond ladders and dividend ETFs."
-                ),
-                "crypto": suggestion(
-                    "crypto", 0.1, "Select staking strategies."
-                ),
+                "stocks": suggestion("stocks", 0.4, "REITs + utilities blend."),
+                "etfs": suggestion("etfs", 0.5, "Bond ladders and dividend ETFs."),
+                "crypto": suggestion("crypto", 0.1, "Select staking strategies."),
             },
             "1y": {
-                "stocks": suggestion(
-                    "stocks", 0.45, "Global dividend growth."
-                ),
-                "etfs": suggestion(
-                    "etfs", 0.45, "Income ETFs and bond funds."
-                ),
-                "crypto": suggestion(
-                    "crypto", 0.1, "Yield-focused crypto vehicles."
-                ),
+                "stocks": suggestion("stocks", 0.45, "Global dividend growth."),
+                "etfs": suggestion("etfs", 0.45, "Income ETFs and bond funds."),
+                "crypto": suggestion("crypto", 0.1, "Yield-focused crypto vehicles."),
             },
         },
     }

@@ -392,7 +392,6 @@ class TradingRecommendationEngine(BaseAgent):
         risk_preferences: Dict[str, Any],
         recommendation_type: RecommendationType,
     ) -> float:
-
         RECOMMENDATION_WEIGHTS = {
             RecommendationType.STRONG_BUY: 2.0,
             RecommendationType.BUY: 1.5,

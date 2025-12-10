@@ -224,7 +224,9 @@ class FinancialNewsChannelService:
             return self._session
 
     def describe_channels(self) -> List[Dict[str, Any]]:
-        return [CHANNEL_REGISTRY[channel].metadata() for channel in self._iter_channels()]
+        return [
+            CHANNEL_REGISTRY[channel].metadata() for channel in self._iter_channels()
+        ]
 
     async def collect_all_channels(
         self, symbols: Optional[Sequence[str]] = None
@@ -238,9 +240,7 @@ class FinancialNewsChannelService:
         result: Dict[str, Any] = {}
         for channel, payload in zip(self._iter_channels(), payloads):
             if isinstance(payload, Exception):
-                logger.warning(
-                    f"Failed to collect channel {channel.value}: {payload}"
-                )
+                logger.warning(f"Failed to collect channel {channel.value}: {payload}")
                 continue
             result[channel.value] = payload
         return result
@@ -291,9 +291,7 @@ class FinancialNewsChannelService:
         collected: List[Dict[str, Any]] = []
         for source, payload in zip(channel_definition.sources, results):
             if isinstance(payload, Exception):
-                logger.warning(
-                    f"Failed to fetch feed from {source.name}: {payload}"
-                )
+                logger.warning(f"Failed to fetch feed from {source.name}: {payload}")
                 continue
             collected.extend(payload)
 
@@ -358,9 +356,7 @@ class FinancialNewsChannelService:
             return None
 
         published = None
-        published_data = entry.get("published_parsed") or entry.get(
-            "updated_parsed"
-        )
+        published_data = entry.get("published_parsed") or entry.get("updated_parsed")
         if published_data:
             published = datetime(*published_data[:6], tzinfo=timezone.utc)
 
@@ -384,9 +380,7 @@ class FinancialNewsChannelService:
             "published_at": published.isoformat() if published else None,
         }
 
-    async def _build_price_items(
-        self, symbols: Sequence[str]
-    ) -> List[Dict[str, Any]]:
+    async def _build_price_items(self, symbols: Sequence[str]) -> List[Dict[str, Any]]:
         trends = await self.price_service.get_trends_for_symbols(list(symbols))
         items: List[Dict[str, Any]] = []
         for symbol in symbols:

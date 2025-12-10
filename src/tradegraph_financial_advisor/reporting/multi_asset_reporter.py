@@ -45,9 +45,7 @@ class MultiAssetPDFReportWriter:
 
         notes = plan.get("notes") or []
         if notes:
-            cursor_y = self._draw_bullet_section(
-                doc, cursor_y, "Advisor Notes", notes
-            )
+            cursor_y = self._draw_bullet_section(doc, cursor_y, "Advisor Notes", notes)
 
         for strategy in plan.get("strategies", []):
             cursor_y = self._draw_strategy_section(doc, cursor_y, strategy)

@@ -108,9 +108,7 @@ class FinancialAnalysisAgent(BaseAgent):
                 return None
 
             change = float(current_price) - float(open_price)
-            change_percent = (
-                (change / float(open_price)) * 100 if open_price else 0.0
-            )
+            change_percent = (change / float(open_price)) * 100 if open_price else 0.0
             volume = int(quote.get("v") or 0)
             market_cap = await self._get_market_cap(symbol)
 
@@ -213,7 +211,9 @@ class FinancialAnalysisAgent(BaseAgent):
             high_series = pd.Series([float(value) for value in highs])
             low_series = pd.Series([float(value) for value in lows])
 
-            return self._build_technical_indicators(symbol, close_prices, high_series, low_series)
+            return self._build_technical_indicators(
+                symbol, close_prices, high_series, low_series
+            )
 
         except Exception as e:
             logger.error(
@@ -237,7 +237,9 @@ class FinancialAnalysisAgent(BaseAgent):
             high_series = pd.Series([float(item[2]) for item in klines])
             low_series = pd.Series([float(item[3]) for item in klines])
 
-            return self._build_technical_indicators(symbol, close_prices, high_series, low_series)
+            return self._build_technical_indicators(
+                symbol, close_prices, high_series, low_series
+            )
 
         except Exception as e:
             logger.error(

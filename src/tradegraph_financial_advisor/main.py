@@ -26,7 +26,9 @@ class FinancialAdvisor:
             model_name=self.llm_model_name
         )
         self.report_analyzer = ReportAnalysisAgent(llm_model_name=self.llm_model_name)
-        self.channel_report_agent = ChannelReportAgent(llm_model_name=self.llm_model_name)
+        self.channel_report_agent = ChannelReportAgent(
+            llm_model_name=self.llm_model_name
+        )
         self.channel_service = FinancialNewsChannelService()
         self.trend_service = PriceTrendService()
         self.pdf_report_writer = ChannelPDFReportWriter()
@@ -614,8 +616,7 @@ async def main():
                 try:
                     existing_reference = (
                         results
-                        if isinstance(results, dict)
-                        and results.get("channel_streams")
+                        if isinstance(results, dict) and results.get("channel_streams")
                         else None
                     )
                     pdf_info = await advisor.generate_channel_pdf_report(
@@ -627,13 +628,9 @@ async def main():
                         existing_results=existing_reference,
                         output_path=args.pdf_path,
                     )
-                    logger.info(
-                        f"Channel PDF report saved to: {pdf_info['pdf_path']}"
-                    )
+                    logger.info(f"Channel PDF report saved to: {pdf_info['pdf_path']}")
                 except Exception as pdf_exc:
-                    logger.warning(
-                        f"Failed to create PDF channel report: {pdf_exc}"
-                    )
+                    logger.warning(f"Failed to create PDF channel report: {pdf_exc}")
 
             # Display results based on output format
             if args.output_format == "json":

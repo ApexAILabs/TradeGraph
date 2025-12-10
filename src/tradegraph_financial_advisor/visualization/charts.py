@@ -27,7 +27,9 @@ def create_portfolio_allocation_chart(
             portfolio_size = rec.get("portfolio_size") or 1
             max_position = rec.get("max_position_size")
             allocation_value = (
-                (max_position / portfolio_size) if max_position and portfolio_size else 0
+                (max_position / portfolio_size)
+                if max_position and portfolio_size
+                else 0
             )
         allocations.append(float(allocation_value) * 100)
 

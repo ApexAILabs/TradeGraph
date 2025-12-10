@@ -202,7 +202,9 @@ class ReportAnalysisAgent(BaseAgent):
             raise json.JSONDecodeError("Empty response", payload, 0)
 
         if "```" in cleaned:
-            segments = [segment.strip() for segment in cleaned.split("```") if segment.strip()]
+            segments = [
+                segment.strip() for segment in cleaned.split("```") if segment.strip()
+            ]
             if segments:
                 cleaned = segments[-1]
 

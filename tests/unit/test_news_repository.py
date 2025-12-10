@@ -1,7 +1,5 @@
 from datetime import datetime, timezone
 
-import pytest
-
 from tradegraph_financial_advisor.models.financial_data import NewsArticle
 from tradegraph_financial_advisor.repositories import NewsRepository
 

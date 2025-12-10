@@ -72,12 +72,16 @@ class PriceTrendService:
                 label: asyncio.create_task(self._fetch_trend(symbol, spec, now))
                 for label, spec in self._timeframes.items()
             }
-            results = await asyncio.gather(*trend_tasks.values(), return_exceptions=True)
+            results = await asyncio.gather(
+                *trend_tasks.values(), return_exceptions=True
+            )
 
             trends: Dict[str, Any] = {}
             for label, result in zip(trend_tasks.keys(), results):
                 if isinstance(result, Exception):
-                    logger.warning(f"Trend window {label} failed for {symbol}: {result}")
+                    logger.warning(
+                        f"Trend window {label} failed for {symbol}: {result}"
+                    )
                     continue
                 if result:
                     trends[label] = result
