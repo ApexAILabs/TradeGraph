@@ -411,3 +411,28 @@ def mock_local_scraping_service():
     ]
     mock_service.health_check.return_value = True
     return mock_service
+
+
+class _MockFinancialAgent:
+    """Simple mock financial agent for workflow tests."""
+
+    name = "FinancialAnalysisAgent"
+    description = "Mock financial agent"
+
+    async def start(self):
+        return None
+
+    async def stop(self):
+        return None
+
+    async def execute(self, input_data):
+        return {"analysis_results": {}}
+
+    async def health_check(self):
+        return True
+
+
+@pytest.fixture
+def mock_financial_agent():
+    """Provide a lightweight financial agent replacement."""
+    return _MockFinancialAgent()

@@ -40,18 +40,23 @@ class FinancialAnalysisWorkflow:
         self,
         scraping_service: Optional[LocalScrapingService] = None,
         llm_model_name: str = "gpt-5-nano",
+        news_agent: Optional[NewsReaderAgent] = None,
+        financial_agent: Optional[FinancialAnalysisAgent] = None,
+        recommendation_engine: Optional[TradingRecommendationEngine] = None,
+        channel_service: Optional[FinancialNewsChannelService] = None,
+        llm: Optional[ChatOpenAI] = None,
     ):
         self.llm_model_name = llm_model_name
-        self.llm = ChatOpenAI(
+        self.llm = llm or ChatOpenAI(
             model=self.llm_model_name, temperature=0.1, api_key=settings.openai_api_key
         )
-        self.news_agent = NewsReaderAgent()
-        self.financial_agent = FinancialAnalysisAgent()
-        self.recommendation_engine = TradingRecommendationEngine(
+        self.news_agent = news_agent or NewsReaderAgent()
+        self.financial_agent = financial_agent or FinancialAnalysisAgent()
+        self.recommendation_engine = recommendation_engine or TradingRecommendationEngine(
             model_name=self.llm_model_name
         )
         self.local_scraping_service = scraping_service or LocalScrapingService()
-        self.channel_service = FinancialNewsChannelService()
+        self.channel_service = channel_service or FinancialNewsChannelService()
         self.workflow = None
         self._build_workflow()
 
@@ -415,7 +420,7 @@ class FinancialAnalysisWorkflow:
                     recommendations,
                     portfolio_constraints,
                 )
-                state["recommendations"] = [rec.dict() for rec in optimized_recs]
+                state["recommendations"] = [rec.model_dump() for rec in optimized_recs]
             else:
                 state["recommendations"] = []
 
@@ -957,7 +962,7 @@ class FinancialAnalysisWorkflow:
         if hasattr(article, "model_dump"):
             return article.model_dump()
         if hasattr(article, "dict"):
-            return article.dict()
+            return article.model_dump()
         return {
             "title": self._get_article_value(article, "title", ""),
             "url": self._get_article_value(article, "url", ""),
