@@ -5,12 +5,16 @@ from unittest.mock import AsyncMock
 from datetime import datetime, timedelta
 
 from tradegraph_financial_advisor.models.financial_data import NewsArticle
+from tradegraph_financial_advisor.config.settings import refresh_openai_api_key
 
 # Test configuration
 os.environ["OPENAI_API_KEY"] = "test-openai-key"
 os.environ["ALPHA_VANTAGE_API_KEY"] = "test-alpha-vantage-key"
 os.environ["FINNHUB_API_KEY"] = "test-finnhub-key"
 os.environ["LOG_LEVEL"] = "DEBUG"
+
+# Ensure global settings pick up the test keys
+refresh_openai_api_key()
 
 
 @pytest.fixture(scope="session")
