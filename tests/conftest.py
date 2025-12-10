@@ -1,7 +1,7 @@
 import asyncio
 import pytest
 import os
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import AsyncMock
 from datetime import datetime, timedelta
 
 from tradegraph_financial_advisor.models.financial_data import NewsArticle
@@ -9,6 +9,7 @@ from tradegraph_financial_advisor.models.financial_data import NewsArticle
 # Test configuration
 os.environ["OPENAI_API_KEY"] = "test-openai-key"
 os.environ["ALPHA_VANTAGE_API_KEY"] = "test-alpha-vantage-key"
+os.environ["FINNHUB_API_KEY"] = "test-finnhub-key"
 os.environ["LOG_LEVEL"] = "DEBUG"
 
 
@@ -260,49 +261,6 @@ def sample_price_trends():
             },
         }
     }
-
-
-@pytest.fixture
-def mock_finnhub_client():
-    """Mock Finnhub client for testing."""
-    client = AsyncMock()
-
-    client.get_quote.return_value = {"c": 195.5, "o": 193.0, "v": 25000000}
-
-    async def get_candles(symbol, resolution, start, end):
-        base = 150.0
-        closes = [base + i for i in range(160)]
-        return {
-            "s": "ok",
-            "c": closes,
-            "h": [value + 2 for value in closes],
-            "l": [value - 2 for value in closes],
-        }
-
-    client.get_candles.side_effect = get_candles
-    client.get_company_profile.return_value = {
-        "name": "Apple Inc.",
-        "marketCapitalization": 3_000_000_000_000,
-    }
-    client.close.return_value = None
-    return client
-
-
-@pytest.fixture
-def mock_binance_client():
-    """Mock Binance client for testing."""
-    client = AsyncMock()
-
-    async def get_klines(symbol, interval, limit=500, start=None, end=None):
-        return [
-            [0, 100.0 + i, 102.0 + i, 98.0 + i, 101.0 + i, 1500 + i]
-            for i in range(limit)
-        ]
-
-    client.get_klines.side_effect = get_klines
-    client.get_price.return_value = 101.0
-    client.close.return_value = None
-    return client
 
 
 @pytest.fixture
