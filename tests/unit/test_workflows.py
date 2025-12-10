@@ -11,11 +11,24 @@ from tradegraph_financial_advisor.workflows.analysis_workflow import (
 class TestFinancialAnalysisWorkflow:
     """Test FinancialAnalysisWorkflow functionality."""
 
+    def _create_workflow(
+        self,
+        mock_local_scraping_service,
+        mock_financial_agent,
+    ) -> FinancialAnalysisWorkflow:
+        """Helper to create workflows with mocked dependencies."""
+        return FinancialAnalysisWorkflow(
+            scraping_service=mock_local_scraping_service,
+            financial_agent=mock_financial_agent,
+        )
+
     @pytest.mark.asyncio
-    async def test_workflow_initialization(self, mock_local_scraping_service):
+    async def test_workflow_initialization(
+        self, mock_local_scraping_service, mock_financial_agent
+    ):
         """Test workflow initialization."""
-        workflow = FinancialAnalysisWorkflow(
-            scraping_service=mock_local_scraping_service
+        workflow = self._create_workflow(
+            mock_local_scraping_service, mock_financial_agent
         )
 
         assert workflow.news_agent is not None
@@ -24,10 +37,12 @@ class TestFinancialAnalysisWorkflow:
         assert workflow.workflow is not None
 
     @pytest.mark.asyncio
-    async def test_analyze_portfolio_basic(self, mock_local_scraping_service):
+    async def test_analyze_portfolio_basic(
+        self, mock_local_scraping_service, mock_financial_agent
+    ):
         """Test basic portfolio analysis."""
-        workflow = FinancialAnalysisWorkflow(
-            scraping_service=mock_local_scraping_service
+        workflow = self._create_workflow(
+            mock_local_scraping_service, mock_financial_agent
         )
         workflow.llm = AsyncMock()
         workflow.llm.ainvoke.return_value = Mock(
@@ -49,11 +64,14 @@ class TestFinancialAnalysisWorkflow:
 
     @pytest.mark.asyncio
     async def test_collect_news_step(
-        self, mock_local_scraping_service, sample_news_articles
+        self,
+        mock_local_scraping_service,
+        mock_financial_agent,
+        sample_news_articles,
     ):
         """Test news collection workflow step."""
-        workflow = FinancialAnalysisWorkflow(
-            scraping_service=mock_local_scraping_service
+        workflow = self._create_workflow(
+            mock_local_scraping_service, mock_financial_agent
         )
         workflow.news_agent.execute = AsyncMock(
             return_value={
@@ -84,11 +102,14 @@ class TestFinancialAnalysisWorkflow:
 
     @pytest.mark.asyncio
     async def test_analyze_financials_step(
-        self, mock_local_scraping_service, sample_financial_data
+        self,
+        mock_local_scraping_service,
+        mock_financial_agent,
+        sample_financial_data,
     ):
         """Test financial analysis workflow step."""
-        workflow = FinancialAnalysisWorkflow(
-            scraping_service=mock_local_scraping_service
+        workflow = self._create_workflow(
+            mock_local_scraping_service, mock_financial_agent
         )
         workflow.financial_agent.execute = AsyncMock(
             return_value={"analysis_results": sample_financial_data}
@@ -116,11 +137,14 @@ class TestFinancialAnalysisWorkflow:
 
     @pytest.mark.asyncio
     async def test_analyze_sentiment_step(
-        self, mock_local_scraping_service, sample_news_articles
+        self,
+        mock_local_scraping_service,
+        mock_financial_agent,
+        sample_news_articles,
     ):
         """Test sentiment analysis workflow step."""
-        workflow = FinancialAnalysisWorkflow(
-            scraping_service=mock_local_scraping_service
+        workflow = self._create_workflow(
+            mock_local_scraping_service, mock_financial_agent
         )
         workflow.llm = AsyncMock()
         workflow.llm.ainvoke.return_value = Mock(
@@ -148,11 +172,14 @@ class TestFinancialAnalysisWorkflow:
 
     @pytest.mark.asyncio
     async def test_generate_recommendations_step(
-        self, mock_local_scraping_service, sample_recommendations
+        self,
+        mock_local_scraping_service,
+        mock_financial_agent,
+        sample_recommendations,
     ):
         """Test recommendation generation workflow step."""
-        workflow = FinancialAnalysisWorkflow(
-            scraping_service=mock_local_scraping_service
+        workflow = self._create_workflow(
+            mock_local_scraping_service, mock_financial_agent
         )
         workflow.llm = AsyncMock()
         workflow.llm.ainvoke.return_value = Mock(
@@ -199,11 +226,14 @@ class TestFinancialAnalysisWorkflow:
 
     @pytest.mark.asyncio
     async def test_create_portfolio_step(
-        self, mock_local_scraping_service, sample_recommendations
+        self,
+        mock_local_scraping_service,
+        mock_financial_agent,
+        sample_recommendations,
     ):
         """Test portfolio creation workflow step."""
-        workflow = FinancialAnalysisWorkflow(
-            scraping_service=mock_local_scraping_service
+        workflow = self._create_workflow(
+            mock_local_scraping_service, mock_financial_agent
         )
         workflow.llm = AsyncMock()
         workflow.llm.ainvoke.return_value = Mock(
@@ -240,11 +270,14 @@ class TestFinancialAnalysisWorkflow:
 
     @pytest.mark.asyncio
     async def test_validate_recommendations_step(
-        self, mock_local_scraping_service, sample_portfolio_recommendation
+        self,
+        mock_local_scraping_service,
+        mock_financial_agent,
+        sample_portfolio_recommendation,
     ):
         """Test recommendation validation workflow step."""
-        workflow = FinancialAnalysisWorkflow(
-            scraping_service=mock_local_scraping_service
+        workflow = self._create_workflow(
+            mock_local_scraping_service, mock_financial_agent
         )
 
         initial_state = AnalysisState(
@@ -267,10 +300,12 @@ class TestFinancialAnalysisWorkflow:
         assert len(result_state["messages"]) > 0
 
     @pytest.mark.asyncio
-    async def test_workflow_error_handling(self, mock_local_scraping_service):
+    async def test_workflow_error_handling(
+        self, mock_local_scraping_service, mock_financial_agent
+    ):
         """Test workflow error handling."""
-        workflow = FinancialAnalysisWorkflow(
-            scraping_service=mock_local_scraping_service
+        workflow = self._create_workflow(
+            mock_local_scraping_service, mock_financial_agent
         )
         workflow.news_agent.execute = AsyncMock(side_effect=Exception("Test error"))
 
@@ -281,11 +316,11 @@ class TestFinancialAnalysisWorkflow:
 
     @pytest.mark.asyncio
     async def test_workflow_with_different_risk_tolerances(
-        self, mock_local_scraping_service
+        self, mock_local_scraping_service, mock_financial_agent
     ):
         """Test workflow with different risk tolerance settings."""
-        workflow = FinancialAnalysisWorkflow(
-            scraping_service=mock_local_scraping_service
+        workflow = self._create_workflow(
+            mock_local_scraping_service, mock_financial_agent
         )
         workflow.llm = AsyncMock()
         workflow.llm.ainvoke.return_value = Mock(
@@ -309,10 +344,12 @@ class TestFinancialAnalysisWorkflow:
             assert result.get("portfolio_recommendation") is not None
 
     @pytest.mark.asyncio
-    async def test_workflow_state_transitions(self, mock_local_scraping_service):
+    async def test_workflow_state_transitions(
+        self, mock_local_scraping_service, mock_financial_agent
+    ):
         """Test workflow state transitions."""
-        workflow = FinancialAnalysisWorkflow(
-            scraping_service=mock_local_scraping_service
+        workflow = self._create_workflow(
+            mock_local_scraping_service, mock_financial_agent
         )
 
         # Test that workflow has proper state transitions
@@ -322,10 +359,12 @@ class TestFinancialAnalysisWorkflow:
         assert workflow.workflow is not None
 
     @pytest.mark.asyncio
-    async def test_workflow_with_multiple_symbols(self, mock_local_scraping_service):
+    async def test_workflow_with_multiple_symbols(
+        self, mock_local_scraping_service, mock_financial_agent
+    ):
         """Test workflow with multiple symbols."""
-        workflow = FinancialAnalysisWorkflow(
-            scraping_service=mock_local_scraping_service
+        workflow = self._create_workflow(
+            mock_local_scraping_service, mock_financial_agent
         )
         workflow.llm = AsyncMock()
         workflow.llm.ainvoke.return_value = Mock(
@@ -366,10 +405,12 @@ class TestFinancialAnalysisWorkflow:
         assert len(result["recommendations"]) >= 0
 
     @pytest.mark.asyncio
-    async def test_workflow_performance(self, mock_local_scraping_service):
+    async def test_workflow_performance(
+        self, mock_local_scraping_service, mock_financial_agent
+    ):
         """Test workflow performance characteristics."""
-        workflow = FinancialAnalysisWorkflow(
-            scraping_service=mock_local_scraping_service
+        workflow = self._create_workflow(
+            mock_local_scraping_service, mock_financial_agent
         )
         workflow.llm = AsyncMock()
         workflow.llm.ainvoke.return_value = Mock(
@@ -392,10 +433,12 @@ class TestFinancialAnalysisWorkflow:
         assert isinstance(result, dict)
 
     @pytest.mark.asyncio
-    async def test_workflow_cleanup(self, mock_local_scraping_service):
+    async def test_workflow_cleanup(
+        self, mock_local_scraping_service, mock_financial_agent
+    ):
         """Test workflow cleanup and resource management."""
-        workflow = FinancialAnalysisWorkflow(
-            scraping_service=mock_local_scraping_service
+        workflow = self._create_workflow(
+            mock_local_scraping_service, mock_financial_agent
         )
         workflow.news_agent = AsyncMock()
         workflow.financial_agent = AsyncMock()
