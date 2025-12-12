@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="TradeGraph Logo" width="200"/>
+  <img src="assets/TradeGraph.png" alt="TradeGraph Logo" width="200"/>
 </p>
 
 # TradeGraph Financial Advisor
