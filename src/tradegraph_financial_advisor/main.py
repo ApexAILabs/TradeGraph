@@ -159,20 +159,49 @@ class FinancialAdvisor:
 
             if analysis_type == "basic":
                 # Basic analysis - just market data and news
-                portfolio_rec = await self.workflow.analyze_portfolio(
+                workflow_results = await self.workflow.analyze_portfolio(
                     symbols=symbols,
                     portfolio_size=50000,  # Default smaller size for quick analysis
                     risk_tolerance="medium",
                 )
 
+                recommendations: List[Dict[str, Any]] = []
+                portfolio_recommendation: Optional[Dict[str, Any]] = None
+                sentiment_analysis: Dict[str, Any] = {}
+
+                if isinstance(workflow_results, dict):
+                    raw_recommendations = workflow_results.get("recommendations", [])
+                    recommendations = [
+                        rec.dict() if hasattr(rec, "dict") else rec
+                        for rec in raw_recommendations
+                    ]
+                    portfolio_recommendation = workflow_results.get(
+                        "portfolio_recommendation"
+                    )
+                    sentiment_analysis = workflow_results.get(
+                        "sentiment_analysis", {}
+                    )
+                elif workflow_results:
+                    raw_recommendations = getattr(
+                        workflow_results, "recommendations", []
+                    )
+                    recommendations = [
+                        rec.dict() if hasattr(rec, "dict") else rec
+                        for rec in raw_recommendations
+                    ]
+                    portfolio_recommendation = getattr(
+                        workflow_results, "portfolio_recommendation", None
+                    )
+                    sentiment_analysis = getattr(
+                        workflow_results, "sentiment_analysis", {}
+                    )
+
                 return {
                     "analysis_type": "basic",
                     "symbols": symbols,
-                    "recommendations": (
-                        [rec.dict() for rec in portfolio_rec.recommendations]
-                        if portfolio_rec
-                        else []
-                    ),
+                    "recommendations": recommendations,
+                    "portfolio_recommendation": portfolio_recommendation,
+                    "sentiment_analysis": sentiment_analysis,
                     "analysis_timestamp": datetime.now().isoformat(),
                 }
 
