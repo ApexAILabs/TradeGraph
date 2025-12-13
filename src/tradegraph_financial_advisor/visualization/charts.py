@@ -1,4 +1,7 @@
-import plotly.graph_objects as go
+try:  # pragma: no cover - optional visualization dependency
+    import plotly.graph_objects as go
+except ModuleNotFoundError:  # pragma: no cover
+    go = None  # type: ignore
 
 
 def create_portfolio_allocation_chart(
@@ -11,6 +14,9 @@ def create_portfolio_allocation_chart(
         recommendations: List of recommendation dicts from analysis results
         output_path: Where to save the HTML file
     """
+    if go is None:
+        raise RuntimeError("plotly is required for chart generation but is not installed")
+
     symbols = [rec["symbol"] for rec in recommendations]
     allocations = [rec["allocation_percentage"] * 100 for rec in recommendations]
 

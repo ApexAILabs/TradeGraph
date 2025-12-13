@@ -1,19 +1,44 @@
 from typing import Any, Dict, List
 from loguru import logger
-from ddgs import DDGS
-from crawl4ai import AsyncWebCrawler
+
+try:
+    from crawl4ai import AsyncWebCrawler
+except ModuleNotFoundError:  # pragma: no cover - optional dependency
+    AsyncWebCrawler = None  # type: ignore
+    logger.warning(
+        "crawl4ai package is not installed; LocalScrapingService scraping is disabled"
+    )
+
+try:
+    from ddgs import DDGS
+except ModuleNotFoundError:  # pragma: no cover - optional dependency for scraping
+    DDGS = None  # type: ignore
+    logger.warning(
+        "ddgs package is not installed; LocalScrapingService search methods are disabled"
+    )
 from ..models.financial_data import NewsArticle
 from ..utils.helpers import generate_summary
 
 
 class LocalScrapingService:
     def __init__(self):
-        self.crawler = AsyncWebCrawler()
+        self.crawler = AsyncWebCrawler() if AsyncWebCrawler else None
+
+    def _ensure_dependencies(self) -> None:
+        if AsyncWebCrawler is None:
+            raise RuntimeError(
+                "crawl4ai package is required for scraping but is not installed"
+            )
+        if DDGS is None:
+            raise RuntimeError(
+                "ddgs package is required for scraping but is not installed"
+            )
 
     async def search_and_scrape_news(
         self, symbols: List[str], max_articles_per_symbol: int = 5
     ) -> List[NewsArticle]:
         all_articles = []
+        self._ensure_dependencies()
         async with DDGS() as ddgs:
             for symbol in symbols:
                 query = f"{symbol} stock news"
@@ -53,6 +78,7 @@ class LocalScrapingService:
     ) -> List[Dict[str, Any]]:
         query = f"{company_symbol} {report_type} site:sec.gov"
         filings = []
+        self._ensure_dependencies()
         async with DDGS() as ddgs:
             try:
                 results = await ddgs.text(
@@ -85,11 +111,13 @@ class LocalScrapingService:
 
     async def start(self):
         logger.info("LocalScrapingService started.")
+        self._ensure_dependencies()
         await self.crawler.start()
 
     async def stop(self):
         logger.info("LocalScrapingService stopped.")
-        await self.crawler.close()
+        if self.crawler:
+            await self.crawler.close()
 
     async def health_check(self) -> bool:
         # For now, we assume the service is healthy if it can be instantiated.
