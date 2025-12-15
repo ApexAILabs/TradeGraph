@@ -31,9 +31,17 @@ class Settings(BaseSettings):
             "cnbc",
         ]
     )
-    analysis_depth: str = Field(default="detailed")
-    default_portfolio_size: float = Field(default=100000.0)
-    news_db_path: str = Field(default="tradegraph.duckdb")
+    analysis_depth: str = Field("detailed", env="ANALYSIS_DEPTH")
+    default_portfolio_size: float = Field(100000.0, env="DEFAULT_PORTFOLIO_SIZE")
+    news_db_path: str = Field("tradegraph.duckdb", env="NEWS_DB_PATH")
+
+    model_config = {"env_file": ".env", "case_sensitive": False, "extra": "ignore"}
+
+    @classmethod
+    def get_news_sources_list(cls, v: str) -> List[str]:
+        if isinstance(v, str):
+            return [source.strip() for source in v.split(",")]
+        return v
 
 
 settings = Settings()

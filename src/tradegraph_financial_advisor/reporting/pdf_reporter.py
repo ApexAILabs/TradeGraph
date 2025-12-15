@@ -354,10 +354,41 @@ class ChannelPDFReportWriter:
             cursor_y = self.page_height - self.margin
         return cursor_y
 
-    def _wrap_text(self, text: str, width: int) -> List[str]:
-        if not text:
+    def _wrap_text(self, text: Any, width: int) -> List[str]:
+        """Safely wrap arbitrary content for drawing in the PDF."""
+        if text is None:
             return ["n/a"]
-        return textwrap.wrap(text, width=width) or [text]
+
+        normalized: str
+        if isinstance(text, str):
+            normalized = text.strip()
+        elif isinstance(text, (list, tuple)):
+            flattened = []
+            for item in text:
+                if item is None:
+                    continue
+                if isinstance(item, str):
+                    flattened.append(item.strip())
+                elif isinstance(item, dict):
+                    flattened.append(
+                        ", ".join(f"{k}: {v}" for k, v in item.items() if v is not None)
+                    )
+                else:
+                    flattened.append(str(item))
+            normalized = "; ".join(filter(None, flattened))
+        elif isinstance(text, dict):
+            normalized = ", ".join(
+                f"{k}: {v}" for k, v in text.items() if v is not None
+            )
+        else:
+            normalized = str(text)
+
+        normalized = normalized.strip()
+        if not normalized:
+            return ["n/a"]
+
+        wrapped = textwrap.wrap(normalized, width=width)
+        return wrapped or [normalized]
 
     @staticmethod
     def _format_pct(trend: Optional[Dict[str, Any]]) -> str:
