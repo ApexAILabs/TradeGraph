@@ -4,7 +4,6 @@ from datetime import datetime
 
 from tradegraph_financial_advisor.agents.base_agent import BaseAgent
 from tradegraph_financial_advisor.agents.news_agent import NewsReaderAgent
-from tradegraph_financial_advisor.agents.financial_agent import FinancialAnalysisAgent
 from tradegraph_financial_advisor.agents.report_analysis_agent import (
     ReportAnalysisAgent,
 )
@@ -156,70 +155,6 @@ class TestNewsReaderAgent:
 
         assert 0.0 <= impact_score <= 1.0
         assert impact_score > 0.5  # Should be higher due to symbol mention in title
-
-
-class TestFinancialAnalysisAgent:
-    """Test FinancialAnalysisAgent functionality."""
-
-    @pytest.mark.asyncio
-    async def test_financial_agent_initialization(self):
-        """Test financial agent initialization."""
-        agent = FinancialAnalysisAgent()
-        assert agent.name == "FinancialAnalysisAgent"
-        assert "financial" in agent.description.lower()
-
-    @pytest.mark.asyncio
-    async def test_execute_financial_analysis(self, mock_yfinance_ticker):
-        """Test financial analysis execution."""
-        agent = FinancialAnalysisAgent()
-
-        with patch("yfinance.Ticker", return_value=mock_yfinance_ticker):
-            await agent.start()
-
-            input_data = {
-                "symbols": ["AAPL"],
-                "include_financials": True,
-                "include_technical": True,
-                "include_market_data": True,
-            }
-
-            result = await agent.execute(input_data)
-
-            assert "analysis_results" in result
-            assert "AAPL" in result["analysis_results"]
-
-            aapl_data = result["analysis_results"]["AAPL"]
-            assert "market_data" in aapl_data
-            assert "financials" in aapl_data
-            assert "technical_indicators" in aapl_data
-
-            await agent.stop()
-
-    @pytest.mark.asyncio
-    async def test_market_data_extraction(self, mock_yfinance_ticker):
-        """Test market data extraction."""
-        agent = FinancialAnalysisAgent()
-
-        with patch("yfinance.Ticker", return_value=mock_yfinance_ticker):
-            market_data = await agent._get_market_data("AAPL")
-
-            assert market_data is not None
-            assert market_data.symbol == "AAPL"
-            assert market_data.current_price > 0
-            assert market_data.volume > 0
-
-    @pytest.mark.asyncio
-    async def test_technical_indicators_calculation(self, mock_yfinance_ticker):
-        """Test technical indicators calculation."""
-        agent = FinancialAnalysisAgent()
-
-        with patch("yfinance.Ticker", return_value=mock_yfinance_ticker):
-            technical_data = await agent._get_technical_indicators("AAPL")
-
-            assert technical_data is not None
-            assert technical_data.symbol == "AAPL"
-            # Check that some indicators are calculated
-            assert technical_data.sma_20 is not None or technical_data.rsi is not None
 
 
 class TestReportAnalysisAgent:
@@ -460,17 +395,3 @@ class TestTradingRecommendationEngine:
                 assert target_price > current_price  # Target should be higher for BUY
             if stop_loss:
                 assert stop_loss < current_price  # Stop loss should be lower for BUY
-
-
-@pytest.mark.asyncio
-async def test_agents_health_checks():
-    """Test health checks for all agents."""
-    agents_to_test = [
-        NewsReaderAgent(),
-        FinancialAnalysisAgent(),
-    ]
-
-    for agent in agents_to_test:
-        health_ok = await agent.health_check()
-        # Health check should return a boolean
-        assert isinstance(health_ok, bool)

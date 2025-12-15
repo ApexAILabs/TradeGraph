@@ -10,6 +10,7 @@ from ..agents.news_agent import NewsReaderAgent
 from ..agents.financial_agent import FinancialAnalysisAgent
 from ..agents.recommendation_engine import TradingRecommendationEngine
 from ..services.local_scraping_service import LocalScrapingService
+from ..services.channel_stream_service import FinancialNewsChannelService
 from ..models.recommendations import (
     TradingRecommendation,
     RecommendationType,
@@ -31,6 +32,7 @@ class AnalysisState(TypedDict):
     messages: List[Any]
     next_step: str
     error_messages: List[str]
+    channel_streams: Dict[str, Any]
 
 
 class FinancialAnalysisWorkflow:
@@ -38,17 +40,24 @@ class FinancialAnalysisWorkflow:
         self,
         scraping_service: Optional[LocalScrapingService] = None,
         llm_model_name: str = "gpt-5-nano",
+        news_agent: Optional[NewsReaderAgent] = None,
+        financial_agent: Optional[FinancialAnalysisAgent] = None,
+        recommendation_engine: Optional[TradingRecommendationEngine] = None,
+        channel_service: Optional[FinancialNewsChannelService] = None,
+        llm: Optional[ChatOpenAI] = None,
     ):
         self.llm_model_name = llm_model_name
-        self.llm = ChatOpenAI(
+        self.llm = llm or ChatOpenAI(
             model=self.llm_model_name, temperature=0.1, api_key=settings.openai_api_key
         )
-        self.news_agent = NewsReaderAgent()
-        self.financial_agent = FinancialAnalysisAgent()
-        self.recommendation_engine = TradingRecommendationEngine(
-            model_name=self.llm_model_name
+        self.news_agent = news_agent or NewsReaderAgent()
+        self.financial_agent = financial_agent or FinancialAnalysisAgent()
+        self.recommendation_engine = (
+            recommendation_engine
+            or TradingRecommendationEngine(model_name=self.llm_model_name)
         )
         self.local_scraping_service = scraping_service or LocalScrapingService()
+        self.channel_service = channel_service or FinancialNewsChannelService()
         self.workflow = None
         self._build_workflow()
 
@@ -81,7 +90,6 @@ class FinancialAnalysisWorkflow:
         risk_tolerance: str = "medium",
         time_horizon: str = "medium_term",
     ) -> Dict[str, Any]:
-
         if portfolio_size is None:
             portfolio_size = settings.default_portfolio_size
 
@@ -102,6 +110,7 @@ class FinancialAnalysisWorkflow:
             messages=[],
             next_step="collect_news",
             error_messages=[],
+            channel_streams={},
         )
 
         try:
@@ -121,6 +130,7 @@ class FinancialAnalysisWorkflow:
                 "financial_data": result.get("financial_data", {}),
                 "recommendations": result.get("recommendations", []),
                 "analysis_context": result.get("analysis_context", {}),
+                "channel_streams": result.get("channel_streams", {}),
             }
 
             return analysis_result
@@ -133,6 +143,7 @@ class FinancialAnalysisWorkflow:
             await self.news_agent.stop()
             await self.financial_agent.stop()
             await self.local_scraping_service.stop()
+            await self.channel_service.close()
 
     async def _collect_news(self, state: AnalysisState) -> AnalysisState:
         try:
@@ -171,6 +182,15 @@ class FinancialAnalysisWorkflow:
                 "total_count": len(combined_news),
                 "collection_timestamp": datetime.now().isoformat(),
             }
+
+            # Capture websocket channel payloads for downstream reporting
+            try:
+                channel_payloads = await self.channel_service.collect_all_channels(
+                    state["symbols"]
+                )
+                state["channel_streams"] = channel_payloads
+            except Exception as channel_exc:
+                logger.warning(f"Failed to collect channel streams: {channel_exc}")
 
             state["messages"].append(
                 AIMessage(content=f"Collected {len(combined_news)} news articles")
@@ -398,7 +418,7 @@ class FinancialAnalysisWorkflow:
                     recommendations,
                     portfolio_constraints,
                 )
-                state["recommendations"] = [rec.dict() for rec in optimized_recs]
+                state["recommendations"] = [rec.model_dump() for rec in optimized_recs]
             else:
                 state["recommendations"] = []
 
@@ -460,9 +480,9 @@ class FinancialAnalysisWorkflow:
                 import json
 
                 portfolio_data = json.loads(response.content)
-                portfolio_data["recommendations"] = (
-                    recommendations  # Ensure recommendations are included
-                )
+                portfolio_data[
+                    "recommendations"
+                ] = recommendations  # Ensure recommendations are included
                 state["portfolio_recommendation"] = portfolio_data
 
             except Exception as e:
@@ -940,7 +960,7 @@ class FinancialAnalysisWorkflow:
         if hasattr(article, "model_dump"):
             return article.model_dump()
         if hasattr(article, "dict"):
-            return article.dict()
+            return article.model_dump()
         return {
             "title": self._get_article_value(article, "title", ""),
             "url": self._get_article_value(article, "url", ""),

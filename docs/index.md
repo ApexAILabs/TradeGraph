@@ -64,12 +64,18 @@ OPENAI_API_KEY=your_openai_key
 
     ```bash
     # Basic analysis
-    tradegraph AAPL MSFT GOOGL
+    uv run tradegraph AAPL MSFT GOOGL
 
     # Comprehensive analysis with custom parameters
-    tradegraph AAPL MSFT --portfolio-size 250000 \
+    uv run tradegraph AAPL MSFT --portfolio-size 250000 \
       --risk-tolerance aggressive \
       --analysis-type comprehensive
+
+    # Quick screen
+    uv run tradegraph TSLA NVDA --analysis-type quick
+
+    # Alerts-only + JSON output
+    uv run tradegraph AAPL --alerts-only --output-format json
     ```
 
 === "Python API"
@@ -106,6 +112,43 @@ OPENAI_API_KEY=your_openai_key
 
     # Open http://localhost:3000
     ```
+
+### Real-Time WebSocket Channels
+
+Three curated channels expose tier-one market news, open-license agencies, and real-time price trends via FastAPI:
+
+1. `top_market_crypto` – Reuters, CNBC, Wall Street Journal, MarketWatch, and CoinDesk
+2. `open_source_agencies` – The Guardian, BBC Business, Al Jazeera, NPR, and Financial Express
+3. `live_price_stream` – Finnhub equities + Binance crypto spot prices with last year/month/day/hour performance
+
+Start the channel server locally:
+
+```bash
+uv run uvicorn tradegraph_financial_advisor.server.channel_server:app --reload
+```
+
+Listen from any WebSocket client:
+
+```js
+const socket = new WebSocket('ws://127.0.0.1:8000/ws/top_market_crypto?symbols=AAPL,MSFT,BTC-USD');
+socket.onmessage = (event) => {
+  console.log(JSON.parse(event.data));
+};
+```
+
+Snapshots are also available via `GET /channels/{channel_id}?symbols=AAPL,MSFT`.
+
+### Multichannel PDF Reports
+
+Generate investor-ready PDFs that merge channel summaries, recommendations, and the trend matrix (month/week/day/hour lookback so the results focus on month-to-date moves):
+
+```bash
+uv run tradegraph AAPL BTC-USD --analysis-type comprehensive --channel-report \
+  --pdf-path results/aapl_crypto_multichannel.pdf
+```
+
+The resulting file includes the ChannelReportAgent executive summary, news highlights, allocation guidance, and a multi-horizon trend table.
+
 
 ## 📈 Example Output
 

@@ -1,13 +1,16 @@
 from typing import List, Optional
+import os
+
+from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings
-from dotenv import load_dotenv
 
 load_dotenv()
 
 
 class Settings(BaseSettings):
     openai_api_key: str = Field("", env="OPENAI_API_KEY")
+    finnhub_api_key: str = Field("", env="FINNHUB_API_KEY")
     alpha_vantage_api_key: Optional[str] = Field(None, env="ALPHA_VANTAGE_API_KEY")
     financial_data_api_key: Optional[str] = Field(None, env="FINANCIAL_DATA_API_KEY")
 
@@ -27,8 +30,9 @@ class Settings(BaseSettings):
     )
     analysis_depth: str = Field("detailed", env="ANALYSIS_DEPTH")
     default_portfolio_size: float = Field(100000.0, env="DEFAULT_PORTFOLIO_SIZE")
+    news_db_path: str = Field("tradegraph.duckdb", env="NEWS_DB_PATH")
 
-    model_config = {"env_file": ".env", "case_sensitive": False}
+    model_config = {"env_file": ".env", "case_sensitive": False, "extra": "ignore"}
 
     @classmethod
     def get_news_sources_list(cls, v: str) -> List[str]:
@@ -38,3 +42,16 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def refresh_openai_api_key() -> None:
+    """Reload API keys from the environment at runtime."""
+
+    load_dotenv(override=True)
+    for env_var, attr in (
+        ("OPENAI_API_KEY", "openai_api_key"),
+        ("FINNHUB_API_KEY", "finnhub_api_key"),
+    ):
+        value = (os.getenv(env_var) or "").strip()
+        if value:
+            setattr(settings, attr, value)

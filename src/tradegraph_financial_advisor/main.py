@@ -1,6 +1,6 @@
 import asyncio
 import sys
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 import argparse
 from loguru import logger
@@ -8,9 +8,14 @@ from loguru import logger
 from .workflows.analysis_workflow import FinancialAnalysisWorkflow
 from .agents.recommendation_engine import TradingRecommendationEngine
 from .agents.report_analysis_agent import ReportAnalysisAgent
-from .config.settings import settings
+from .agents.channel_report_agent import ChannelReportAgent
+from .agents.multi_asset_allocation_agent import MultiAssetAllocationAgent
+from .config.settings import settings, refresh_openai_api_key
 from .utils.helpers import save_analysis_results
 from .visualization import charts
+from .services.channel_stream_service import FinancialNewsChannelService
+from .services.price_trend_service import PriceTrendService
+from .reporting import ChannelPDFReportWriter, MultiAssetPDFReportWriter
 
 
 class FinancialAdvisor:
@@ -21,6 +26,14 @@ class FinancialAdvisor:
             model_name=self.llm_model_name
         )
         self.report_analyzer = ReportAnalysisAgent(llm_model_name=self.llm_model_name)
+        self.channel_report_agent = ChannelReportAgent(
+            llm_model_name=self.llm_model_name
+        )
+        self.channel_service = FinancialNewsChannelService()
+        self.trend_service = PriceTrendService()
+        self.pdf_report_writer = ChannelPDFReportWriter()
+        self.multi_asset_agent = MultiAssetAllocationAgent()
+        self.multi_asset_pdf_writer = MultiAssetPDFReportWriter()
 
     async def analyze_portfolio(
         self,
@@ -105,8 +118,10 @@ class FinancialAdvisor:
                 "portfolio_recommendation": (
                     portfolio_recommendation if portfolio_recommendation else None
                 ),
+                "recommendations": workflow_results.get("recommendations", []),
                 "sentiment_analysis": sentiment_analysis,
                 "detailed_reports": report_analyses,
+                "channel_streams": workflow_results.get("channel_streams", {}),
                 "analysis_metadata": {
                     "workflow_version": "1.0.0",
                     "agents_used": [
@@ -144,20 +159,47 @@ class FinancialAdvisor:
 
             if analysis_type == "basic":
                 # Basic analysis - just market data and news
-                portfolio_rec = await self.workflow.analyze_portfolio(
+                workflow_results = await self.workflow.analyze_portfolio(
                     symbols=symbols,
                     portfolio_size=50000,  # Default smaller size for quick analysis
                     risk_tolerance="medium",
                 )
 
+                recommendations: List[Dict[str, Any]] = []
+                portfolio_recommendation: Optional[Dict[str, Any]] = None
+                sentiment_analysis: Dict[str, Any] = {}
+
+                if isinstance(workflow_results, dict):
+                    raw_recommendations = workflow_results.get("recommendations", [])
+                    recommendations = [
+                        rec.dict() if hasattr(rec, "dict") else rec
+                        for rec in raw_recommendations
+                    ]
+                    portfolio_recommendation = workflow_results.get(
+                        "portfolio_recommendation"
+                    )
+                    sentiment_analysis = workflow_results.get("sentiment_analysis", {})
+                elif workflow_results:
+                    raw_recommendations = getattr(
+                        workflow_results, "recommendations", []
+                    )
+                    recommendations = [
+                        rec.dict() if hasattr(rec, "dict") else rec
+                        for rec in raw_recommendations
+                    ]
+                    portfolio_recommendation = getattr(
+                        workflow_results, "portfolio_recommendation", None
+                    )
+                    sentiment_analysis = getattr(
+                        workflow_results, "sentiment_analysis", {}
+                    )
+
                 return {
                     "analysis_type": "basic",
                     "symbols": symbols,
-                    "recommendations": (
-                        [rec.dict() for rec in portfolio_rec.recommendations]
-                        if portfolio_rec
-                        else []
-                    ),
+                    "recommendations": recommendations,
+                    "portfolio_recommendation": portfolio_recommendation,
+                    "sentiment_analysis": sentiment_analysis,
                     "analysis_timestamp": datetime.now().isoformat(),
                 }
 
@@ -174,6 +216,85 @@ class FinancialAdvisor:
         except Exception as e:
             logger.error(f"Quick analysis failed: {str(e)}")
             raise
+
+    async def plan_multi_asset_allocation(
+        self, *, budget: float, strategies: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        if budget <= 0:
+            raise ValueError("Budget must be positive for allocation planning.")
+        payload = {
+            "budget": budget,
+            "strategies": strategies,
+        }
+        return await self.multi_asset_agent.execute(payload)
+
+    def build_multi_asset_pdf(
+        self, plan: Dict[str, Any], output_path: Optional[str] = None
+    ) -> str:
+        return self.multi_asset_pdf_writer.build_report(
+            plan=plan, output_path=output_path
+        )
+
+    async def generate_channel_pdf_report(
+        self,
+        symbols: List[str],
+        *,
+        portfolio_size: Optional[float] = None,
+        risk_tolerance: str = "medium",
+        time_horizon: str = "medium_term",
+        include_reports: bool = False,
+        existing_results: Optional[Dict[str, Any]] = None,
+        output_path: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Create a PDF report that merges channel streams, recommendations, and trends."""
+
+        reference_results = existing_results
+        if reference_results is None:
+            reference_results = await self.analyze_portfolio(
+                symbols=symbols,
+                portfolio_size=portfolio_size,
+                risk_tolerance=risk_tolerance,
+                time_horizon=time_horizon,
+                include_reports=include_reports,
+            )
+
+        channel_streams = reference_results.get("channel_streams") or {}
+        if not channel_streams:
+            channel_streams = await self.channel_service.collect_all_channels(symbols)
+            await self.channel_service.close()
+
+        price_trends = await self.trend_service.get_trends_for_symbols(symbols)
+
+        summary_payload = await self.channel_report_agent.execute(
+            {
+                "channel_payloads": channel_streams,
+                "price_trends": price_trends,
+                "recommendations": reference_results.get("recommendations", []),
+            }
+        )
+
+        recommendations = reference_results.get("recommendations", [])
+        portfolio_rec = reference_results.get("portfolio_recommendation")
+        allocation_chart_path = None
+        if recommendations:
+            allocation_chart_path = charts.create_portfolio_allocation_chart(
+                recommendations=recommendations,
+                output_path="results/portfolio_allocation.png",
+            )
+
+        pdf_path = self.pdf_report_writer.build_report(
+            summary_payload=summary_payload,
+            channel_payloads=channel_streams,
+            price_trends=price_trends,
+            recommendations=recommendations,
+            symbols=symbols,
+            portfolio_recommendation=portfolio_rec,
+            analysis_summary=reference_results.get("analysis_summary", {}),
+            allocation_chart_path=allocation_chart_path,
+            output_path=output_path,
+        )
+
+        return {"pdf_path": pdf_path, "summary": summary_payload}
 
     async def get_stock_alerts(self, symbols: List[str]) -> List[Dict[str, Any]]:
         """
@@ -284,6 +405,46 @@ class FinancialAdvisor:
 
         print("\n" + "=" * 80)
 
+    def print_multi_asset_plan(self, plan: Dict[str, Any]) -> None:
+        budget = plan.get("budget", 0)
+        print("\n" + "=" * 80)
+        print("TRADEGRAPH MULTI-ASSET ALLOCATION PLAN")
+        print("=" * 80)
+        print(f"Budget: ${budget:,.2f}")
+
+        strategies = plan.get("strategies", [])
+        for strategy in strategies:
+            print(
+                f"\n📌 Strategy: {strategy.get('strategy', '').title()} - {strategy.get('description', '')}"
+            )
+            horizons = strategy.get("horizons", {})
+            for horizon_key, payload in horizons.items():
+                label = payload.get("label", horizon_key)
+                print(f"  ➤ {label}: {payload.get('risk_focus', 'N/A')}")
+                for allocation in payload.get("allocations", []):
+                    percent = allocation.get("weight", 0) * 100
+                    amount = allocation.get("amount", 0)
+                    rationale = allocation.get("rationale", "")
+                    sample_assets = ", ".join(
+                        f"{asset['symbol']} ({asset['thesis']})"
+                        for asset in allocation.get("sample_assets", [])
+                    )
+                    print(
+                        f"    - {allocation.get('asset_class').upper()}: {percent:.1f}% "
+                        f"(${amount:,.2f})"
+                    )
+                    if rationale:
+                        print(f"      Rationale: {rationale}")
+                    if sample_assets:
+                        print(f"      Sample: {sample_assets}")
+
+        notes = plan.get("notes") or []
+        if notes:
+            print("\n🗒 Advisor Notes:")
+            for note in notes:
+                print(f"  - {note}")
+        print("\n" + "=" * 80)
+
 
 async def main():
     """
@@ -328,8 +489,36 @@ async def main():
     parser.add_argument(
         "--alerts-only", action="store_true", help="Generate alerts only"
     )
+    parser.add_argument(
+        "--channel-report",
+        action="store_true",
+        help="Generate the multichannel PDF report after analysis",
+    )
+    parser.add_argument(
+        "--pdf-path",
+        type=str,
+        help="Optional output path for the PDF report",
+    )
+    parser.add_argument(
+        "--multi-asset-budget",
+        type=float,
+        help="USD budget for a quick stocks/ETFs/crypto allocation plan",
+    )
+    parser.add_argument(
+        "--multi-asset-strategies",
+        type=str,
+        help="Comma-separated strategies (growth,balanced,defensive,income)",
+    )
+    parser.add_argument(
+        "--multi-asset-pdf-path",
+        type=str,
+        help="Optional output path for the multi-asset PDF report",
+    )
 
     args = parser.parse_args()
+
+    # Refresh the OpenAI API key so CLI runs pick up env changes immediately
+    refresh_openai_api_key()
 
     # Configure logging
     logger.remove()  # Remove default handler
@@ -341,6 +530,34 @@ async def main():
 
     try:
         advisor = FinancialAdvisor()
+
+        if args.multi_asset_budget:
+            strategies = None
+            if args.multi_asset_strategies:
+                strategies = [
+                    item.strip()
+                    for item in args.multi_asset_strategies.split(",")
+                    if item.strip()
+                ]
+            plan = await advisor.plan_multi_asset_allocation(
+                budget=args.multi_asset_budget,
+                strategies=strategies,
+            )
+            try:
+                pdf_path = advisor.build_multi_asset_pdf(
+                    plan, output_path=args.multi_asset_pdf_path
+                )
+                logger.info(f"Multi-asset PDF saved to: {pdf_path}")
+                plan["pdf_path"] = pdf_path
+            except Exception as pdf_exc:
+                logger.warning(f"Failed to create multi-asset PDF: {pdf_exc}")
+            if args.output_format == "json":
+                import json
+
+                print(json.dumps(plan, indent=2, default=str))
+            else:
+                advisor.print_multi_asset_plan(plan)
+            return
 
         if args.alerts_only:
             # Generate alerts only
@@ -408,7 +625,7 @@ async def main():
 
                     chart_path = charts.create_portfolio_allocation_chart(
                         recommendations=recommendations,
-                        output_path="results/portfolio_allocation.html",
+                        output_path="results/portfolio_allocation.png",
                     )
 
                     logger.info(f"Portfolio allocation chart saved to: {chart_path}")
@@ -421,6 +638,26 @@ async def main():
                 logger.warning(
                     f"Failed to generate portfolio allocation chart: {str(e)}"
                 )
+
+            if args.channel_report:
+                try:
+                    existing_reference = (
+                        results
+                        if isinstance(results, dict) and results.get("channel_streams")
+                        else None
+                    )
+                    pdf_info = await advisor.generate_channel_pdf_report(
+                        symbols=args.symbols,
+                        portfolio_size=args.portfolio_size,
+                        risk_tolerance=args.risk_tolerance,
+                        time_horizon=args.time_horizon,
+                        include_reports=args.analysis_type == "comprehensive",
+                        existing_results=existing_reference,
+                        output_path=args.pdf_path,
+                    )
+                    logger.info(f"Channel PDF report saved to: {pdf_info['pdf_path']}")
+                except Exception as pdf_exc:
+                    logger.warning(f"Failed to create PDF channel report: {pdf_exc}")
 
             # Display results based on output format
             if args.output_format == "json":

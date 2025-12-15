@@ -1,15 +1,20 @@
 import asyncio
 import pytest
 import os
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import AsyncMock
 from datetime import datetime, timedelta
 
 from tradegraph_financial_advisor.models.financial_data import NewsArticle
+from tradegraph_financial_advisor.config.settings import refresh_openai_api_key
 
 # Test configuration
 os.environ["OPENAI_API_KEY"] = "test-openai-key"
 os.environ["ALPHA_VANTAGE_API_KEY"] = "test-alpha-vantage-key"
+os.environ["FINNHUB_API_KEY"] = "test-finnhub-key"
 os.environ["LOG_LEVEL"] = "DEBUG"
+
+# Ensure global settings pick up the test keys
+refresh_openai_api_key()
 
 
 @pytest.fixture(scope="session")
@@ -186,51 +191,80 @@ def sample_recommendations():
 
 
 @pytest.fixture
-def mock_yfinance_ticker():
-    """Mock yfinance Ticker for testing."""
-    mock_ticker = Mock()
-    mock_ticker.info = {
-        "longName": "Apple Inc.",
-        "currentPrice": 195.89,
-        "marketCap": 3000000000000,
-        "trailingPE": 28.5,
-        "trailingEps": 6.88,
-        "totalRevenue": 394328000000,
-        "netIncomeToCommon": 99803000000,
-        "debtToEquity": 1.73,
-        "currentRatio": 1.05,
-        "returnOnEquity": 0.175,
-        "returnOnAssets": 0.225,
-        "priceToBook": 5.02,
-        "dividendYield": 0.0047,
-        "beta": 1.29,
-        "fiftyTwoWeekHigh": 199.62,
-        "fiftyTwoWeekLow": 164.08,
+def sample_channel_streams():
+    return {
+        "top_market_crypto": {
+            "channel_id": "top_market_crypto",
+            "title": "Top Market & Crypto Headlines",
+            "items": [
+                {
+                    "title": "Markets rally on soft CPI",
+                    "summary": "Major indices advanced after inflation cooled.",
+                    "source": "Reuters",
+                    "published_at": datetime.now().isoformat(),
+                },
+                {
+                    "title": "Bitcoin holds above 60k",
+                    "summary": "Crypto markets consolidate gains.",
+                    "source": "CoinDesk",
+                    "published_at": datetime.now().isoformat(),
+                },
+            ],
+        },
+        "open_source_agencies": {
+            "channel_id": "open_source_agencies",
+            "title": "Open News Agencies",
+            "items": [
+                {
+                    "title": "Guardian: policy outlook improves",
+                    "summary": "Central banks signal patience.",
+                    "source": "Guardian",
+                    "published_at": datetime.now().isoformat(),
+                }
+            ],
+        },
     }
 
-    # Mock historical data
-    import pandas as pd
-    import numpy as np
 
-    dates = pd.date_range(end=datetime.now(), periods=100, freq="D")
-    prices = 190 + np.cumsum(np.random.randn(100) * 0.5)
-
-    mock_history = pd.DataFrame(
-        {
-            "Open": prices * 0.99,
-            "High": prices * 1.02,
-            "Low": prices * 0.98,
-            "Close": prices,
-            "Volume": np.random.randint(20000000, 60000000, 100),
-        },
-        index=dates,
-    )
-
-    mock_ticker.history.return_value = mock_history
-    mock_ticker.quarterly_financials = pd.DataFrame()
-    mock_ticker.financials = pd.DataFrame()
-
-    return mock_ticker
+@pytest.fixture
+def sample_price_trends():
+    return {
+        "AAPL": {
+            "symbol": "AAPL",
+            "current_price": 195.0,
+            "pricing_timestamp": datetime.now().isoformat(),
+            "trends": {
+                "last_month": {
+                    "start": 180.0,
+                    "end": 195.0,
+                    "change": 15.0,
+                    "percent_change": 8.3,
+                    "direction": "bullish",
+                },
+                "last_week": {
+                    "start": 190.0,
+                    "end": 195.0,
+                    "change": 5.0,
+                    "percent_change": 2.6,
+                    "direction": "bullish",
+                },
+                "last_day": {
+                    "start": 194.0,
+                    "end": 195.0,
+                    "change": 1.0,
+                    "percent_change": 0.5,
+                    "direction": "bullish",
+                },
+                "last_hour": {
+                    "start": 194.5,
+                    "end": 195.0,
+                    "change": 0.5,
+                    "percent_change": 0.26,
+                    "direction": "bullish",
+                },
+            },
+        }
+    }
 
 
 @pytest.fixture
@@ -381,3 +415,28 @@ def mock_local_scraping_service():
     ]
     mock_service.health_check.return_value = True
     return mock_service
+
+
+class _MockFinancialAgent:
+    """Simple mock financial agent for workflow tests."""
+
+    name = "FinancialAnalysisAgent"
+    description = "Mock financial agent"
+
+    async def start(self):
+        return None
+
+    async def stop(self):
+        return None
+
+    async def execute(self, input_data):
+        return {"analysis_results": {}}
+
+    async def health_check(self):
+        return True
+
+
+@pytest.fixture
+def mock_financial_agent():
+    """Provide a lightweight financial agent replacement."""
+    return _MockFinancialAgent()
