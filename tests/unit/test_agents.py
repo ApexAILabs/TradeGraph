@@ -10,6 +10,7 @@ from tradegraph_financial_advisor.agents.report_analysis_agent import (
 from tradegraph_financial_advisor.agents.recommendation_engine import (
     TradingRecommendationEngine,
 )
+from tradegraph_financial_advisor.agents.financial_agent import FinancialAnalysisAgent
 from tradegraph_financial_advisor.models.financial_data import (
     NewsArticle,
     SentimentType,
@@ -197,6 +198,146 @@ class TestReportAnalysisAgent:
         assert "AAPL" in result["report_analysis"]
 
         await agent.stop()
+
+
+class _DummyFinnhubClient:
+    async def get_quote(self, symbol):
+        return {"c": 101.0, "o": 99.0, "v": 1250000}
+
+    async def get_company_profile(self, symbol):
+        return {"name": f"{symbol} Inc.", "marketCapitalization": 1_250_000_000}
+
+    async def get_candles(self, symbol, *, resolution, start, end):
+        closes = [float(90 + i) for i in range(160)]
+        return {
+            "s": "ok",
+            "c": closes,
+            "h": [price + 1 for price in closes],
+            "l": [price - 1 for price in closes],
+        }
+
+    async def close(self):
+        return None
+
+
+class _DummyBinanceClient:
+    async def close(self):
+        return None
+
+
+class _DummyAlphaClient:
+    async def close(self):
+        return None
+
+    async def get_daily_time_series(self, symbol, **_):
+        return {
+            "timestamp": "2024-01-02",
+            "close": 101.0,
+            "open": 100.0,
+            "high": 102.0,
+            "low": 99.0,
+            "volume": 1000000,
+        }
+
+    async def get_intraday_time_series(self, symbol, **_):
+        return {
+            "timestamp": "2024-01-02 15:30:00",
+            "close": 100.5,
+            "open": 100.2,
+            "high": 100.8,
+            "low": 100.1,
+            "volume": 10000,
+        }
+
+    async def get_technical_indicator(self, symbol, *, indicator, **_):
+        return {
+            "indicator": indicator,
+            "timestamp": "2024-01-02 15:30:00",
+            "values": {indicator: 100.25},
+        }
+
+    async def get_company_overview(self, symbol):
+        return {
+            "symbol": symbol,
+            "name": "Demo Corp",
+            "sector": "Technology",
+            "market_cap": 1500000000,
+            "pe_ratio": 24.5,
+            "eps": 6.2,
+            "revenue": 50000000000,
+            "dividend_yield": 0.012,
+            "return_on_equity": 0.18,
+            "return_on_assets": 0.11,
+            "debt_to_equity": 0.45,
+            "current_ratio": 1.2,
+            "price_to_book": 5.1,
+            "beta": 1.1,
+            "fifty_two_week_high": 120.0,
+            "fifty_two_week_low": 80.0,
+        }
+
+    async def get_sector_performance(self):
+        return {"Rank A: Real-Time Performance": {"Technology": "+1.2%"}}
+
+    async def get_fx_rate(self, from_symbol, to_symbol):
+        return {
+            "from_symbol": from_symbol,
+            "to_symbol": to_symbol,
+            "exchange_rate": 1.083,
+            "last_refreshed": "2024-01-02 15:30:00",
+        }
+
+    async def get_crypto_rate(self, symbol, market):
+        return {
+            "from_symbol": symbol,
+            "to_symbol": market,
+            "exchange_rate": 45250.5,
+            "last_refreshed": "2024-01-02 15:30:00",
+        }
+
+
+@pytest.mark.asyncio
+async def test_financial_agent_collects_alpha_vantage_data():
+    agent = FinancialAnalysisAgent(
+        finnhub_client=_DummyFinnhubClient(),
+        binance_client=_DummyBinanceClient(),
+        alpha_vantage_client=_DummyAlphaClient(),
+    )
+
+    payload = {
+        "symbols": ["AAPL"],
+        "include_financials": True,
+        "include_market_data": True,
+        "include_technical": False,
+        "alpha_vantage_requests": {
+            "datasets": [
+                "daily",
+                "intraday",
+                "technical",
+                "fundamentals",
+                "sector",
+                "fx",
+                "crypto",
+            ],
+            "intraday_interval": "5min",
+            "technical_indicators": ["SMA"],
+            "fx_pairs": ["EUR/USD"],
+            "crypto_pairs": ["BTC/USD"],
+        },
+    }
+
+    result = await agent.execute(payload)
+
+    alpha_summary = result.get("alpha_vantage", {})
+    assert "AAPL" in alpha_summary.get("per_symbol", {})
+    assert alpha_summary["per_symbol"]["AAPL"]["daily"]["close"] == pytest.approx(101.0)
+    assert alpha_summary["global"]["fx_quotes"][0]["to_symbol"] == "USD"
+
+    analysis = result["analysis_results"]["AAPL"]
+    assert analysis["financials"]["company_name"] == "Demo Corp"
+    assert (
+        analysis["alpha_vantage"]["technical_indicators"]["SMA"]["indicator"] == "SMA"
+    )
 
 
 class TestTradingRecommendationEngine:

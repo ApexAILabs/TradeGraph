@@ -33,6 +33,7 @@ class AnalysisState(TypedDict):
     next_step: str
     error_messages: List[str]
     channel_streams: Dict[str, Any]
+    alpha_vantage_requests: Dict[str, Any]
 
 
 class FinancialAnalysisWorkflow:
@@ -89,6 +90,7 @@ class FinancialAnalysisWorkflow:
         portfolio_size: float = None,
         risk_tolerance: str = "medium",
         time_horizon: str = "medium_term",
+        alpha_vantage_options: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         if portfolio_size is None:
             portfolio_size = settings.default_portfolio_size
@@ -111,6 +113,7 @@ class FinancialAnalysisWorkflow:
             next_step="collect_news",
             error_messages=[],
             channel_streams={},
+            alpha_vantage_requests=alpha_vantage_options or {},
         )
 
         try:
@@ -213,6 +216,7 @@ class FinancialAnalysisWorkflow:
                 "include_financials": True,
                 "include_technical": True,
                 "include_market_data": True,
+                "alpha_vantage_requests": state.get("alpha_vantage_requests", {}),
             }
 
             financial_result = await self.financial_agent.execute(financial_input)

@@ -2,7 +2,7 @@ from typing import List, Optional
 import os
 
 from dotenv import load_dotenv
-from pydantic import Field
+from pydantic import Field, AliasChoices
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 load_dotenv()
@@ -15,7 +15,10 @@ class Settings(BaseSettings):
 
     openai_api_key: str = Field(default="")
     finnhub_api_key: str = Field(default="")
-    alpha_vantage_api_key: Optional[str] = Field(default=None)
+    alpha_vantage_api_key: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("ALPHA_VANTAGE_API", "ALPHA_VANTAGE_API_KEY"),
+    )
     financial_data_api_key: Optional[str] = Field(default=None)
 
     log_level: str = Field(default="INFO")
@@ -54,6 +57,8 @@ def refresh_openai_api_key() -> None:
     for env_var, attr in (
         ("OPENAI_API_KEY", "openai_api_key"),
         ("FINNHUB_API_KEY", "finnhub_api_key"),
+        ("ALPHA_VANTAGE_API", "alpha_vantage_api_key"),
+        ("ALPHA_VANTAGE_API_KEY", "alpha_vantage_api_key"),
     ):
         value = (os.getenv(env_var) or "").strip()
         if value:

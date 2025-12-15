@@ -32,6 +32,7 @@ class ChannelPDFReportWriter:
         portfolio_recommendation: Optional[Dict[str, Any]] = None,
         analysis_summary: Optional[Dict[str, Any]] = None,
         allocation_chart_path: Optional[str] = None,
+        alpha_vantage_data: Optional[Dict[str, Any]] = None,
         output_path: Optional[str] = None,
     ) -> str:
         os.makedirs("results", exist_ok=True)
@@ -104,6 +105,7 @@ class ChannelPDFReportWriter:
         cursor_y = self._draw_channel_breakdown(doc, cursor_y, channel_payloads)
         cursor_y = self._draw_recommendations(doc, cursor_y, recommendations)
         cursor_y = self._draw_trends(doc, cursor_y, price_trends)
+        cursor_y = self._draw_alpha_vantage(doc, cursor_y, alpha_vantage_data or {})
 
         doc.save()
         return output_path
@@ -269,6 +271,77 @@ class ChannelPDFReportWriter:
             doc.drawString(self.margin, cursor_y, row)
             cursor_y -= self.line_height
         return cursor_y
+
+    def _draw_alpha_vantage(
+        self,
+        doc: canvas.Canvas,
+        cursor_y: float,
+        alpha_data: Dict[str, Any],
+    ) -> float:
+        if not alpha_data:
+            return cursor_y
+        cursor_y = self._ensure_space(doc, cursor_y, min_height=120)
+        doc.setFont("Helvetica-Bold", 14)
+        doc.drawString(self.margin, cursor_y, "Alpha Vantage Highlights")
+        cursor_y -= 18
+        doc.setFont("Helvetica", 10)
+
+        per_symbol = alpha_data.get("per_symbol", {})
+        for symbol, payload in list(per_symbol.items())[:4]:
+            daily = payload.get("daily") or {}
+            intraday = payload.get("intraday") or {}
+            fundamentals = payload.get("fundamentals") or {}
+            line = f"{symbol}:"
+            if daily.get("close") is not None:
+                line += f" daily ${daily['close']:.2f}"
+            if intraday.get("close") is not None:
+                line += f" | intraday ${intraday['close']:.2f}"
+            if fundamentals.get("pe_ratio"):
+                line += f" | PE {fundamentals['pe_ratio']:.1f}"
+            doc.drawString(self.margin + 10, cursor_y, line)
+            cursor_y -= self.line_height
+
+        global_data = alpha_data.get("global", {})
+        sector_perf = global_data.get("sector_performance", {})
+        if sector_perf:
+            realtime = sector_perf.get("Rank A: Real-Time Performance", {})
+            if realtime:
+                leaders = list(realtime.items())[:3]
+                leader_text = ", ".join(f"{name} {value}" for name, value in leaders)
+                doc.drawString(
+                    self.margin + 10,
+                    cursor_y,
+                    f"Sector leaders: {leader_text}",
+                )
+                cursor_y -= self.line_height
+
+        fx_quotes = global_data.get("fx_quotes", [])
+        if fx_quotes:
+            for quote in fx_quotes[:2]:
+                rate = quote.get("exchange_rate")
+                if rate is None:
+                    continue
+                doc.drawString(
+                    self.margin + 10,
+                    cursor_y,
+                    f"FX {quote.get('from_symbol')}/{quote.get('to_symbol')}: {rate:.4f}",
+                )
+                cursor_y -= self.line_height
+
+        crypto_quotes = global_data.get("crypto_quotes", [])
+        if crypto_quotes:
+            for quote in crypto_quotes[:2]:
+                rate = quote.get("exchange_rate")
+                if rate is None:
+                    continue
+                doc.drawString(
+                    self.margin + 10,
+                    cursor_y,
+                    f"Crypto {quote.get('from_symbol')}/{quote.get('to_symbol')}: {rate:.2f}",
+                )
+                cursor_y -= self.line_height
+
+        return cursor_y - 6
 
     def _draw_portfolio_overview(
         self,

@@ -42,6 +42,7 @@ class FinancialAdvisor:
         risk_tolerance: str = "medium",
         time_horizon: str = "medium_term",
         include_reports: bool = True,
+        alpha_vantage_options: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Perform comprehensive portfolio analysis and generate recommendations.
@@ -68,6 +69,7 @@ class FinancialAdvisor:
                 portfolio_size=portfolio_size,
                 risk_tolerance=risk_tolerance,
                 time_horizon=time_horizon,
+                alpha_vantage_options=alpha_vantage_options,
             )
 
             portfolio_recommendation = workflow_results.get("portfolio_recommendation")
@@ -122,6 +124,11 @@ class FinancialAdvisor:
                 "sentiment_analysis": sentiment_analysis,
                 "detailed_reports": report_analyses,
                 "channel_streams": workflow_results.get("channel_streams", {}),
+                "financial_data": workflow_results.get("financial_data", {}),
+                "news_data": workflow_results.get("news_data", {}),
+                "alpha_vantage_data": workflow_results.get("financial_data", {}).get(
+                    "alpha_vantage", {}
+                ),
                 "analysis_metadata": {
                     "workflow_version": "1.0.0",
                     "agents_used": [
@@ -142,7 +149,10 @@ class FinancialAdvisor:
             raise
 
     async def quick_analysis(
-        self, symbols: List[str], analysis_type: str = "standard"
+        self,
+        symbols: List[str],
+        analysis_type: str = "standard",
+        alpha_vantage_options: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Perform quick analysis without full report scraping.
@@ -163,6 +173,7 @@ class FinancialAdvisor:
                     symbols=symbols,
                     portfolio_size=50000,  # Default smaller size for quick analysis
                     risk_tolerance="medium",
+                    alpha_vantage_options=alpha_vantage_options,
                 )
 
                 recommendations: List[Dict[str, Any]] = []
@@ -211,16 +222,24 @@ class FinancialAdvisor:
                     ),
                     "sentiment_analysis": sentiment_analysis,
                     "analysis_timestamp": datetime.now().isoformat(),
+                    "financial_data": workflow_results.get("financial_data", {}),
+                    "alpha_vantage_data": workflow_results.get(
+                        "financial_data", {}
+                    ).get("alpha_vantage", {}),
                 }
 
             elif analysis_type == "standard":
                 return await self.analyze_portfolio(
-                    symbols=symbols, include_reports=False
+                    symbols=symbols,
+                    include_reports=False,
+                    alpha_vantage_options=alpha_vantage_options,
                 )
 
             else:  # detailed
                 return await self.analyze_portfolio(
-                    symbols=symbols, include_reports=True
+                    symbols=symbols,
+                    include_reports=True,
+                    alpha_vantage_options=alpha_vantage_options,
                 )
 
         except Exception as e:
@@ -255,6 +274,7 @@ class FinancialAdvisor:
         include_reports: bool = False,
         existing_results: Optional[Dict[str, Any]] = None,
         output_path: Optional[str] = None,
+        alpha_vantage_options: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Create a PDF report that merges channel streams, recommendations, and trends."""
 
@@ -266,6 +286,7 @@ class FinancialAdvisor:
                 risk_tolerance=risk_tolerance,
                 time_horizon=time_horizon,
                 include_reports=include_reports,
+                alpha_vantage_options=alpha_vantage_options,
             )
 
         channel_streams = reference_results.get("channel_streams") or {}
@@ -285,6 +306,9 @@ class FinancialAdvisor:
 
         recommendations = reference_results.get("recommendations", [])
         portfolio_rec = reference_results.get("portfolio_recommendation")
+        alpha_vantage_data = (
+            reference_results.get("financial_data", {}).get("alpha_vantage") or {}
+        )
         allocation_chart_path = None
         if recommendations:
             allocation_chart_path = charts.create_portfolio_allocation_chart(
@@ -301,6 +325,7 @@ class FinancialAdvisor:
             portfolio_recommendation=portfolio_rec,
             analysis_summary=reference_results.get("analysis_summary", {}),
             allocation_chart_path=allocation_chart_path,
+            alpha_vantage_data=alpha_vantage_data,
             output_path=output_path,
         )
 
@@ -414,6 +439,11 @@ class FinancialAdvisor:
                         print(f"  Summary: {summary_text[:100]}...")
 
         print("\n" + "=" * 80)
+        alpha_data = results.get("alpha_vantage_data") or results.get(
+            "financial_data", {}
+        ).get("alpha_vantage")
+        if alpha_data:
+            self._print_alpha_vantage_summary(alpha_data)
 
     def print_multi_asset_plan(self, plan: Dict[str, Any]) -> None:
         budget = plan.get("budget", 0)
@@ -454,6 +484,68 @@ class FinancialAdvisor:
             for note in notes:
                 print(f"  - {note}")
         print("\n" + "=" * 80)
+
+    def _print_alpha_vantage_summary(self, alpha_data: Dict[str, Any]) -> None:
+        print("\n🛰 ALPHA VANTAGE MARKET INTEL")
+        per_symbol = alpha_data.get("per_symbol", {})
+        for symbol, payload in sorted(per_symbol.items()):
+            notes: List[str] = []
+            daily = payload.get("daily") or {}
+            intraday = payload.get("intraday") or {}
+            technical = payload.get("technical_indicators") or {}
+            fundamentals = payload.get("fundamentals") or {}
+            if daily.get("close") is not None:
+                notes.append(f"daily close ${daily['close']:.2f}")
+            if intraday.get("close") is not None and intraday.get("timestamp"):
+                notes.append(
+                    f"intraday {intraday['timestamp'][-8:]} ${intraday['close']:.2f}"
+                )
+            if technical:
+                tech_lines = []
+                for name, payload_data in list(technical.items())[:2]:
+                    values = payload_data.get("values") or {}
+                    first_value = next(iter(values.values()), None)
+                    if first_value is not None:
+                        tech_lines.append(f"{name}:{first_value:.2f}")
+                if tech_lines:
+                    notes.append(f"tech {' | '.join(tech_lines)}")
+            if fundamentals.get("pe_ratio"):
+                notes.append(f"PE {fundamentals['pe_ratio']:.1f}")
+            if fundamentals.get("dividend_yield"):
+                notes.append(f"Yield {fundamentals['dividend_yield'] * 100:.2f}%")
+            summary_line = " | ".join(notes) if notes else "Alpha data available"
+            print(f"  {symbol}: {summary_line}")
+
+        global_data = alpha_data.get("global", {})
+        fx_quotes = global_data.get("fx_quotes", [])
+        if fx_quotes:
+            print("  FX Quotes:")
+            for quote in fx_quotes[:3]:
+                rate = quote.get("exchange_rate")
+                if rate is None:
+                    continue
+                from_symbol = quote.get("from_symbol") or quote.get("base")
+                to_symbol = quote.get("to_symbol") or quote.get("quote")
+                print(f"    {from_symbol}/{to_symbol}: {rate:.4f}")
+
+        crypto_quotes = global_data.get("crypto_quotes", [])
+        if crypto_quotes:
+            print("  Crypto Quotes:")
+            for quote in crypto_quotes[:3]:
+                rate = quote.get("exchange_rate")
+                if rate is None:
+                    continue
+                from_symbol = quote.get("from_symbol") or quote.get("base")
+                to_symbol = quote.get("to_symbol") or quote.get("quote")
+                print(f"    {from_symbol}/{to_symbol}: {rate:.2f}")
+
+        sector_perf = global_data.get("sector_performance", {})
+        if sector_perf:
+            realtime = sector_perf.get("Rank A: Real-Time Performance", {})
+            if realtime:
+                leaders = list(realtime.items())[:3]
+                formatted = ", ".join(f"{sector} {value}" for sector, value in leaders)
+                print(f"  Sector leaders: {formatted}")
 
 
 async def main():
@@ -524,6 +616,45 @@ async def main():
         type=str,
         help="Optional output path for the multi-asset PDF report",
     )
+    parser.add_argument(
+        "--alpha-vantage-data",
+        nargs="+",
+        choices=[
+            "daily",
+            "intraday",
+            "technical",
+            "fx",
+            "crypto",
+            "sector",
+            "fundamentals",
+        ],
+        default=[],
+        help="Alpha Vantage datasets to include in the analysis output",
+    )
+    parser.add_argument(
+        "--alpha-intraday-interval",
+        type=str,
+        default="15min",
+        help="Interval for Alpha Vantage intraday queries (1min,5min,15min,30min,60min)",
+    )
+    parser.add_argument(
+        "--alpha-technical-indicators",
+        nargs="+",
+        default=["SMA", "EMA", "RSI"],
+        help="Technical indicator functions to fetch from Alpha Vantage",
+    )
+    parser.add_argument(
+        "--alpha-fx-pairs",
+        nargs="+",
+        default=[],
+        help="Currency pairs for Alpha Vantage FX quotes (e.g., EUR/USD USDJPY)",
+    )
+    parser.add_argument(
+        "--alpha-crypto-pairs",
+        nargs="+",
+        default=[],
+        help="Crypto pairs for Alpha Vantage quotes (e.g., BTC/USD ETH-USD)",
+    )
 
     args = parser.parse_args()
 
@@ -537,6 +668,16 @@ async def main():
         level=settings.log_level,
         format="<green>{time}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
     )
+
+    alpha_vantage_options = None
+    if args.alpha_vantage_data:
+        alpha_vantage_options = {
+            "datasets": args.alpha_vantage_data,
+            "intraday_interval": args.alpha_intraday_interval,
+            "technical_indicators": args.alpha_technical_indicators,
+            "fx_pairs": args.alpha_fx_pairs,
+            "crypto_pairs": args.alpha_crypto_pairs,
+        }
 
     try:
         advisor = FinancialAdvisor()
@@ -601,7 +742,11 @@ async def main():
         else:
             # Full analysis
             if args.analysis_type == "quick":
-                results = await advisor.quick_analysis(args.symbols, "basic")
+                results = await advisor.quick_analysis(
+                    args.symbols,
+                    "basic",
+                    alpha_vantage_options=alpha_vantage_options,
+                )
             elif args.analysis_type == "comprehensive":
                 results = await advisor.analyze_portfolio(
                     symbols=args.symbols,
@@ -609,6 +754,7 @@ async def main():
                     risk_tolerance=args.risk_tolerance,
                     time_horizon=args.time_horizon,
                     include_reports=True,
+                    alpha_vantage_options=alpha_vantage_options,
                 )
             else:  # standard
                 results = await advisor.analyze_portfolio(
@@ -617,6 +763,7 @@ async def main():
                     risk_tolerance=args.risk_tolerance,
                     time_horizon=args.time_horizon,
                     include_reports=False,
+                    alpha_vantage_options=alpha_vantage_options,
                 )
 
             # Always save results to JSON file with timestamp
@@ -663,6 +810,7 @@ async def main():
                         time_horizon=args.time_horizon,
                         include_reports=args.analysis_type == "comprehensive",
                         existing_results=existing_reference,
+                        alpha_vantage_options=alpha_vantage_options,
                         output_path=args.pdf_path,
                     )
                     logger.info(f"Channel PDF report saved to: {pdf_info['pdf_path']}")

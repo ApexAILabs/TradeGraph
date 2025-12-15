@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from datetime import datetime, timedelta, timezone
 import aiohttp
 import pandas as pd
@@ -8,6 +8,7 @@ from .base_agent import BaseAgent
 from ..models.financial_data import CompanyFinancials, MarketData, TechnicalIndicators
 from ..config.settings import settings
 from ..services.market_data_clients import FinnhubClient, BinanceClient
+from ..services.alpha_vantage_service import AlphaVantageClient
 
 
 class FinancialAnalysisAgent(BaseAgent):
@@ -22,6 +23,14 @@ class FinancialAnalysisAgent(BaseAgent):
         self.session: Optional[aiohttp.ClientSession] = None
         self.finnhub_client = finnhub_client or FinnhubClient(settings.finnhub_api_key)
         self.binance_client = binance_client or BinanceClient()
+        alpha_vantage_client = kwargs.pop("alpha_vantage_client", None)
+        self.alpha_vantage_client = alpha_vantage_client
+        self._owns_alpha_client = False
+        if not self.alpha_vantage_client and settings.alpha_vantage_api_key:
+            self.alpha_vantage_client = AlphaVantageClient(
+                settings.alpha_vantage_api_key
+            )
+            self._owns_alpha_client = True
         self._owns_finnhub = finnhub_client is None
         self._owns_binance = binance_client is None
         self._profile_cache: Dict[str, Optional[Dict[str, Any]]] = {}
@@ -39,6 +48,8 @@ class FinancialAnalysisAgent(BaseAgent):
             await self.finnhub_client.close()
         if self._owns_binance:
             await self.binance_client.close()
+        if self._owns_alpha_client and self.alpha_vantage_client:
+            await self.alpha_vantage_client.close()
         await super().stop()
 
     async def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -46,15 +57,32 @@ class FinancialAnalysisAgent(BaseAgent):
         include_financials = input_data.get("include_financials", True)
         include_technical = input_data.get("include_technical", True)
         include_market_data = input_data.get("include_market_data", True)
+        alpha_requests = input_data.get("alpha_vantage_requests") or {}
+        alpha_enabled = bool(
+            self.alpha_vantage_client and alpha_requests.get("datasets")
+        )
 
         logger.info(f"Analyzing financial data for symbols: {symbols}")
 
         results = {}
+        alpha_summary: Dict[str, Any] = {}
+        if alpha_enabled:
+            alpha_summary = {
+                "per_symbol": {},
+                "global": await self._collect_alpha_global_data(alpha_requests),
+                "requested_datasets": alpha_requests.get("datasets", []),
+            }
 
         for symbol in symbols:
             try:
                 symbol_data = {}
                 market_data: Optional[MarketData] = None
+
+                alpha_symbol_data: Dict[str, Any] = {}
+                if alpha_enabled:
+                    alpha_symbol_data = await self._collect_alpha_symbol_data(
+                        symbol, alpha_requests
+                    )
 
                 if include_market_data:
                     if self._is_crypto(symbol):
@@ -70,7 +98,9 @@ class FinancialAnalysisAgent(BaseAgent):
                         symbol_data["financials"] = None
                     else:
                         financials = await self._get_company_financials(
-                            symbol, market_data
+                            symbol,
+                            market_data,
+                            alpha_symbol_data.get("fundamentals"),
                         )
                         symbol_data["financials"] = (
                             financials.model_dump() if financials else None
@@ -85,16 +115,26 @@ class FinancialAnalysisAgent(BaseAgent):
                         technical.model_dump() if technical else None
                     )
 
+                if alpha_symbol_data:
+                    symbol_data["alpha_vantage"] = alpha_symbol_data
+                    if alpha_summary:
+                        alpha_summary.setdefault("per_symbol", {})[
+                            symbol
+                        ] = alpha_symbol_data
+
                 results[symbol] = symbol_data
 
             except Exception as e:
                 logger.error(f"Error analyzing {symbol}: {str(e)}")
                 results[symbol] = {"error": str(e)}
 
-        return {
+        response: Dict[str, Any] = {
             "analysis_results": results,
             "analysis_timestamp": datetime.now().isoformat(),
         }
+        if alpha_summary:
+            response["alpha_vantage"] = alpha_summary
+        return response
 
     async def _get_equity_market_data(self, symbol: str) -> Optional[MarketData]:
         try:
@@ -161,22 +201,44 @@ class FinancialAnalysisAgent(BaseAgent):
             return None
 
     async def _get_company_financials(
-        self, symbol: str, market_data: Optional[MarketData]
+        self,
+        symbol: str,
+        market_data: Optional[MarketData],
+        alpha_fundamentals: Optional[Dict[str, Any]] = None,
     ) -> Optional[CompanyFinancials]:
         try:
-            details = await self._get_ticker_details(symbol)
-            if not details and not market_data:
+            details = await self._get_company_profile(symbol)
+            if not details and not market_data and not alpha_fundamentals:
                 return None
 
             high_52, low_52 = await self._get_52_week_range(symbol)
 
+            fundamentals = alpha_fundamentals or {}
+            company_name = (
+                fundamentals.get("name") or (details or {}).get("name") or symbol
+            )
+            market_cap = fundamentals.get("market_cap") or (details or {}).get(
+                "market_cap"
+            )
+            fifty_two_week_high = fundamentals.get("fifty_two_week_high") or high_52
+            fifty_two_week_low = fundamentals.get("fifty_two_week_low") or low_52
             financials = CompanyFinancials(
                 symbol=symbol,
-                company_name=(details or {}).get("name", symbol),
-                market_cap=(details or {}).get("market_cap"),
+                company_name=company_name,
+                market_cap=market_cap,
                 current_price=market_data.current_price if market_data else None,
-                fifty_two_week_high=high_52,
-                fifty_two_week_low=low_52,
+                fifty_two_week_high=fifty_two_week_high,
+                fifty_two_week_low=fifty_two_week_low,
+                pe_ratio=fundamentals.get("pe_ratio"),
+                eps=fundamentals.get("eps"),
+                revenue=fundamentals.get("revenue"),
+                dividend_yield=fundamentals.get("dividend_yield"),
+                return_on_equity=fundamentals.get("return_on_equity"),
+                return_on_assets=fundamentals.get("return_on_assets"),
+                debt_to_equity=fundamentals.get("debt_to_equity"),
+                current_ratio=fundamentals.get("current_ratio"),
+                price_to_book=fundamentals.get("price_to_book"),
+                beta=fundamentals.get("beta"),
                 report_date=datetime.now(),
                 report_type="summary",
             )
@@ -246,6 +308,170 @@ class FinancialAnalysisAgent(BaseAgent):
                 f"Error calculating crypto technical indicators for {symbol}: {str(e)}"
             )
             return None
+
+    async def _collect_alpha_symbol_data(
+        self, symbol: str, requests: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        if not self.alpha_vantage_client:
+            return {}
+        datasets = self._alpha_dataset_flags(requests)
+        if not datasets:
+            return {}
+
+        payload: Dict[str, Any] = {}
+        interval = requests.get("intraday_interval", "15min")
+        technical_interval = (
+            requests.get("technical_interval")
+            or requests.get("intraday_interval")
+            or "daily"
+        )
+        try:
+            technical_period = int(requests.get("technical_time_period", 20))
+        except (TypeError, ValueError):
+            technical_period = 20
+        series_type = requests.get("technical_series_type", "close")
+
+        if "daily" in datasets:
+            daily = await self.alpha_vantage_client.get_daily_time_series(symbol)
+            if daily:
+                payload["daily"] = daily
+
+        if "intraday" in datasets:
+            intraday = await self.alpha_vantage_client.get_intraday_time_series(
+                symbol, interval=interval
+            )
+            if intraday:
+                payload["intraday"] = intraday
+
+        if "technical" in datasets:
+            indicator_payload: Dict[str, Any] = {}
+            raw_indicators = self._ensure_list(
+                requests.get("technical_indicators")
+            ) or ["SMA", "EMA", "RSI"]
+            for indicator_name in raw_indicators:
+                indicator_name = indicator_name.strip()
+                if not indicator_name:
+                    continue
+                technical = await self.alpha_vantage_client.get_technical_indicator(
+                    symbol,
+                    indicator=indicator_name,
+                    interval=technical_interval,
+                    time_period=technical_period,
+                    series_type=series_type,
+                )
+                if technical:
+                    indicator_payload[indicator_name.upper()] = technical
+            if indicator_payload:
+                payload["technical_indicators"] = indicator_payload
+
+        if "fundamentals" in datasets:
+            fundamentals = await self.alpha_vantage_client.get_company_overview(symbol)
+            if fundamentals:
+                payload["fundamentals"] = fundamentals
+
+        return payload
+
+    async def _collect_alpha_global_data(
+        self, requests: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        if not self.alpha_vantage_client:
+            return {}
+        datasets = self._alpha_dataset_flags(requests)
+        if not datasets:
+            return {}
+
+        payload: Dict[str, Any] = {}
+
+        if "sector" in datasets:
+            sector_performance = (
+                await self.alpha_vantage_client.get_sector_performance()
+            )
+            if sector_performance:
+                payload["sector_performance"] = sector_performance
+
+        if "fx" in datasets:
+            quotes = []
+            fx_pairs = self._normalize_pairs(
+                self._ensure_list(requests.get("fx_pairs")),
+                fallback=["EUR/USD"],
+            )
+            for base, quote in fx_pairs:
+                rate = await self.alpha_vantage_client.get_fx_rate(base, quote)
+                if rate:
+                    quotes.append(rate)
+            if quotes:
+                payload["fx_quotes"] = quotes
+
+        if "crypto" in datasets:
+            crypto_quotes = []
+            crypto_pairs = self._normalize_pairs(
+                self._ensure_list(requests.get("crypto_pairs")),
+                fallback=["BTC/USD"],
+            )
+            for base, quote in crypto_pairs:
+                rate = await self.alpha_vantage_client.get_crypto_rate(base, quote)
+                if rate:
+                    crypto_quotes.append(rate)
+            if crypto_quotes:
+                payload["crypto_quotes"] = crypto_quotes
+
+        return {key: value for key, value in payload.items() if value}
+
+    def _alpha_dataset_flags(self, requests: Dict[str, Any]) -> List[str]:
+        datasets = requests.get("datasets") or []
+        normalized = []
+        for item in datasets:
+            try:
+                normalized_value = str(item).strip().lower()
+            except Exception:  # pragma: no cover - defensive
+                continue
+            if normalized_value:
+                normalized.append(normalized_value)
+        return normalized
+
+    def _normalize_pairs(
+        self, pairs: List[str], fallback: Optional[List[str]] = None
+    ) -> List[Tuple[str, str]]:
+        normalized: List[Tuple[str, str]] = []
+        for pair in pairs:
+            base, quote = self._split_pair(pair)
+            if base and quote:
+                normalized.append((base, quote))
+        if not normalized and fallback:
+            for pair in fallback:
+                base, quote = self._split_pair(pair)
+                if base and quote:
+                    normalized.append((base, quote))
+        return normalized
+
+    def _ensure_list(self, value: Any) -> List[str]:
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [item.strip() for item in value.split(",") if item.strip()]
+        if isinstance(value, (list, tuple, set)):
+            return [
+                str(item).strip()
+                for item in value
+                if isinstance(item, (str, int, float)) and str(item).strip()
+            ]
+        return []
+
+    @staticmethod
+    def _split_pair(value: str) -> Tuple[Optional[str], Optional[str]]:
+        if not value:
+            return None, None
+        cleaned = value.replace("-", "/").replace(" ", "")
+        if "/" in cleaned:
+            base, quote = cleaned.split("/", 1)
+        else:
+            midpoint = len(cleaned) // 2
+            base, quote = cleaned[:midpoint], cleaned[midpoint:]
+        base = base.strip().upper()
+        quote = quote.strip().upper()
+        if not base or not quote:
+            return None, None
+        return base, quote
 
     def _build_technical_indicators(
         self,
