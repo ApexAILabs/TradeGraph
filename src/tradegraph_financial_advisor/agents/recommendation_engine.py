@@ -62,11 +62,13 @@ class TradingRecommendationEngine(BaseAgent):
         )
 
         return {
-            "individual_recommendations": [rec.dict() for rec in recommendations],
+            "individual_recommendations": [rec.model_dump() for rec in recommendations],
             "portfolio_recommendation": (
-                portfolio_recommendation.dict() if portfolio_recommendation else None
+                portfolio_recommendation.model_dump()
+                if portfolio_recommendation
+                else None
             ),
-            "alerts": [alert.dict() for alert in alerts],
+            "alerts": [alert.model_dump() for alert in alerts],
             "generation_timestamp": datetime.now().isoformat(),
         }
 

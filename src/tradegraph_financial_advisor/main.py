@@ -194,11 +194,21 @@ class FinancialAdvisor:
                         workflow_results, "sentiment_analysis", {}
                     )
 
+                portfolio_recommendation_payload = (
+                    portfolio_recommendation.dict()
+                    if hasattr(portfolio_recommendation, "dict")
+                    else portfolio_recommendation
+                )
+
                 return {
                     "analysis_type": "basic",
                     "symbols": symbols,
                     "recommendations": recommendations,
-                    "portfolio_recommendation": portfolio_recommendation,
+                    "portfolio_recommendation": (
+                        portfolio_recommendation_payload
+                        if portfolio_recommendation_payload
+                        else None
+                    ),
                     "sentiment_analysis": sentiment_analysis,
                     "analysis_timestamp": datetime.now().isoformat(),
                 }

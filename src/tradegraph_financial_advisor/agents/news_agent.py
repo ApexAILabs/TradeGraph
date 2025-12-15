@@ -54,7 +54,7 @@ class NewsReaderAgent(BaseAgent):
         analyzed_articles = await self._analyze_articles(all_articles, symbols)
 
         return {
-            "articles": [article.dict() for article in analyzed_articles],
+            "articles": [article.model_dump() for article in analyzed_articles],
             "total_count": len(analyzed_articles),
             "sources": settings.news_sources,
             "analysis_timestamp": datetime.now().isoformat(),
