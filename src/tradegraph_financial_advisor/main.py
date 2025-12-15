@@ -178,9 +178,7 @@ class FinancialAdvisor:
                     portfolio_recommendation = workflow_results.get(
                         "portfolio_recommendation"
                     )
-                    sentiment_analysis = workflow_results.get(
-                        "sentiment_analysis", {}
-                    )
+                    sentiment_analysis = workflow_results.get("sentiment_analysis", {})
                 elif workflow_results:
                     raw_recommendations = getattr(
                         workflow_results, "recommendations", []
