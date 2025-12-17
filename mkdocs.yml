@@ -1,10 +1,10 @@
-site_name: TradeGraph Financial Advisor
-site_description: AI-powered financial analysis and trading recommendations
-site_author: TradeGraph Team
-site_url: https://tradegraph.github.io/financial-advisor
+site_name: RADGEGRAPH Financial Advisor
+site_description: Risk and Asset Decision Engine Based on AGENTS, AI, and Knowledge Graph
+site_author: RADGEGRAPH Team
+site_url: https://radgegraph.github.io/financial-advisor
 
-repo_name: tradegraph/financial-advisor
-repo_url: https://github.com/tradegraph/financial-advisor
+repo_name: radgegraph/financial-advisor
+repo_url: https://github.com/radgegraph/financial-advisor
 
 theme:
   name: material
@@ -109,8 +109,8 @@ nav:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/tradegraph/financial-advisor
+      link: https://github.com/radgegraph/financial-advisor
     - icon: fontawesome/brands/python
-      link: https://pypi.org/project/tradegraph-financial-advisor
+      link: https://pypi.org/project/radgegraph-financial-advisor
   version:
     provider: mike

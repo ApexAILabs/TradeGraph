@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Basic usage example for TradeGraph Financial Advisor
+Basic usage example for RADGEGRAPH Financial Advisor
 """
 
 import asyncio
 import os
-from tradegraph_financial_advisor import FinancialAdvisor
+from radgegraph_financial_advisor import FinancialAdvisor
 
 
 async def basic_analysis_example():
@@ -224,7 +224,7 @@ async def main():
     """
     Run all examples
     """
-    print("🚀 TradeGraph Financial Advisor - Examples")
+    print("🚀 RADGEGRAPH Financial Advisor - Examples")
     print("=" * 60)
 
     # Check environment first

@@ -3,10 +3,10 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tradegraph-financial-advisor"
+name = "radgegraph-financial-advisor"
 version = "1.0.0"
-description = "Multi-agent financial analysis system using LangGraph, ddgs, and Crawl4AI for trading recommendations"
-authors = [{name = "TradeGraph Team", email = "team@tradegraph.com"}]
+description = "Risk and Asset Decision Engine Based on AGENTS, AI, and Knowledge Graph for multi-agent financial analysis"
+authors = [{name = "RADGEGRAPH Team", email = "team@radgegraph.com"}]
 license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.10"
@@ -61,7 +61,7 @@ dev = [
 ]
 
 [project.scripts]
-tradegraph = "tradegraph_financial_advisor.main:cli_main"
+radgegraph = "radgegraph_financial_advisor.main:cli_main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

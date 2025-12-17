@@ -1,4 +1,4 @@
-# TradeGraph Financial Advisor
+# RADGEGRAPH – Risk and Asset Decision Engine Based on AGENTS, AI, and Knowledge Graph
 
 <div align="center">
   <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python Version">
@@ -6,7 +6,7 @@
   <img src="https://img.shields.io/badge/Status-Production-brightgreen.svg" alt="Status">
 </div>
 
-A sophisticated **multi-agent financial analysis system** that uses LangGraph, ddgs, and Crawl4AI to provide intelligent trading recommendations based on real-time financial news and comprehensive company analysis.
+RADGEGRAPH (Risk and Asset Decision Engine Based on AGENTS, AI, and Knowledge Graph) is a sophisticated **multi-agent financial analysis system** that uses LangGraph, ddgs, and Crawl4AI to provide intelligent trading recommendations based on real-time financial news and comprehensive company analysis.
 
 ## 🚀 Key Features
 
@@ -40,11 +40,11 @@ A sophisticated **multi-agent financial analysis system** that uses LangGraph, d
 
 ```bash
 # Install the package
-pip install tradegraph-financial-advisor
+pip install radgegraph-financial-advisor
 
 # Or install from source
-git clone https://github.com/tradegraph/financial-advisor.git
-cd financial-advisor
+git clone https://github.com/radgegraph/financial-advisor.git
+cd RADGEGRAPH
 pip install -e .
 ```
 
@@ -64,25 +64,25 @@ OPENAI_API_KEY=your_openai_key
 
     ```bash
     # Basic analysis
-    uv run tradegraph AAPL MSFT GOOGL
+    uv run radgegraph AAPL MSFT GOOGL
 
     # Comprehensive analysis with custom parameters
-    uv run tradegraph AAPL MSFT --portfolio-size 250000 \
+    uv run radgegraph AAPL MSFT --portfolio-size 250000 \
       --risk-tolerance aggressive \
       --analysis-type comprehensive
 
     # Quick screen
-    uv run tradegraph TSLA NVDA --analysis-type quick
+    uv run radgegraph TSLA NVDA --analysis-type quick
 
     # Alerts-only + JSON output
-    uv run tradegraph AAPL --alerts-only --output-format json
+    uv run radgegraph AAPL --alerts-only --output-format json
     ```
 
 === "Python API"
 
     ```python
     import asyncio
-    from tradegraph_financial_advisor import FinancialAdvisor
+    from radgegraph_financial_advisor import FinancialAdvisor
 
     async def main():
         advisor = FinancialAdvisor()
@@ -124,7 +124,7 @@ Three curated channels expose tier-one market news, open-license agencies, and r
 Start the channel server locally:
 
 ```bash
-uv run uvicorn tradegraph_financial_advisor.server.channel_server:app --reload
+uv run uvicorn radgegraph_financial_advisor.server.channel_server:app --reload
 ```
 
 Listen from any WebSocket client:
@@ -143,7 +143,7 @@ Snapshots are also available via `GET /channels/{channel_id}?symbols=AAPL,MSFT`.
 Generate investor-ready PDFs that merge channel summaries, recommendations, and the trend matrix (month/week/day/hour lookback so the results focus on month-to-date moves):
 
 ```bash
-uv run tradegraph AAPL BTC-USD --analysis-type comprehensive --channel-report \
+uv run radgegraph AAPL BTC-USD --analysis-type comprehensive --channel-report \
   --pdf-path results/aapl_crypto_multichannel.pdf
 ```
 
@@ -223,7 +223,7 @@ graph TD
 pytest
 
 # Run with coverage
-pytest --cov=tradegraph_financial_advisor
+pytest --cov=radgegraph_financial_advisor
 
 # Run specific test categories
 pytest tests/unit/
@@ -243,7 +243,7 @@ We welcome contributions! Please see our [Contributing Guide](development/contri
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/tradegraph/financial-advisor/blob/main/LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/radgegraph/financial-advisor/blob/main/LICENSE) file for details.
 
 ## ⚠️ Disclaimer
 
@@ -254,12 +254,12 @@ This project is licensed under the MIT License - see the [LICENSE](https://githu
 
 ## 🆘 Support
 
-- **🐛 Bug Reports**: [GitHub Issues](https://github.com/tradegraph/financial-advisor/issues)
-- **💬 Discussions**: [GitHub Discussions](https://github.com/tradegraph/financial-advisor/discussions)
-- **📧 Email**: support@tradegraph.com
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/radgegraph/financial-advisor/issues)
+- **💬 Discussions**: [GitHub Discussions](https://github.com/radgegraph/financial-advisor/discussions)
+- **📧 Email**: support@radgegraph.com
 
 ---
 
 <div align="center">
-  <strong>Built with ❤️ by the TradeGraph Team</strong>
+  <strong>Built with ❤️ by the RADGEGRAPH Team</strong>
 </div>

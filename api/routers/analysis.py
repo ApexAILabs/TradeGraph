@@ -16,7 +16,7 @@ from ..models import (
 
 from ..auth.dependencies import get_current_user
 from ..websocket_manager import WebSocketManager
-from tradegraph_financial_advisor import FinancialAdvisor
+from radgegraph_financial_advisor import FinancialAdvisor
 
 router = APIRouter()
 

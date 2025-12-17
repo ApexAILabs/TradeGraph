@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
 """
-Advanced usage examples for TradeGraph Financial Advisor
+Advanced usage examples for RADGEGRAPH Financial Advisor
 """
 
 import asyncio
 import json
 from datetime import datetime
 
-from tradegraph_financial_advisor import FinancialAdvisor
-from tradegraph_financial_advisor.workflows.analysis_workflow import (
+from radgegraph_financial_advisor import FinancialAdvisor
+from radgegraph_financial_advisor.workflows.analysis_workflow import (
     FinancialAnalysisWorkflow,
 )
-from tradegraph_financial_advisor.agents.news_agent import NewsReaderAgent
-from tradegraph_financial_advisor.agents.financial_agent import FinancialAnalysisAgent
-from tradegraph_financial_advisor.agents.report_analysis_agent import (
+from radgegraph_financial_advisor.agents.news_agent import NewsReaderAgent
+from radgegraph_financial_advisor.agents.financial_agent import FinancialAnalysisAgent
+from radgegraph_financial_advisor.agents.report_analysis_agent import (
     ReportAnalysisAgent,
 )
-from tradegraph_financial_advisor.agents.recommendation_engine import (
+from radgegraph_financial_advisor.agents.recommendation_engine import (
     TradingRecommendationEngine,
 )
-from tradegraph_financial_advisor.utils.helpers import (
+from radgegraph_financial_advisor.utils.helpers import (
     save_analysis_results,
     load_analysis_results,
     calculate_portfolio_metrics,
@@ -359,7 +359,7 @@ async def data_export_import_example():
         custom_export = {
             "export_metadata": {
                 "export_time": datetime.now().isoformat(),
-                "export_format": "tradegraph_v1",
+                "export_format": "radgegraph_v1",
                 "symbols": symbols,
             },
             "recommendations_summary": [],
@@ -484,7 +484,7 @@ async def main():
     """
     Run all advanced examples
     """
-    print("🚀 TradeGraph Financial Advisor - Advanced Examples")
+    print("🚀 RADGEGRAPH Financial Advisor - Advanced Examples")
     print("=" * 70)
 
     # Advanced examples

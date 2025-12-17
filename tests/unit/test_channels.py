@@ -2,13 +2,13 @@ import os
 import pandas as pd
 import pytest
 
-from tradegraph_financial_advisor.services.channel_stream_service import (
+from radgegraph_financial_advisor.services.channel_stream_service import (
     FinancialNewsChannelService,
     ChannelType,
 )
-from tradegraph_financial_advisor.services.price_trend_service import PriceTrendService
-from tradegraph_financial_advisor.agents.channel_report_agent import ChannelReportAgent
-from tradegraph_financial_advisor.reporting import ChannelPDFReportWriter
+from radgegraph_financial_advisor.services.price_trend_service import PriceTrendService
+from radgegraph_financial_advisor.agents.channel_report_agent import ChannelReportAgent
+from radgegraph_financial_advisor.reporting import ChannelPDFReportWriter
 
 
 class _DummyPriceService:

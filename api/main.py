@@ -35,7 +35,7 @@ background_tasks_status: Dict[str, Dict[str, Any]] = {}
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan context manager."""
-    logger.info("🚀 TradeGraph Financial Advisor API starting up...")
+    logger.info("🚀 RADGEGRAPH Financial Advisor API starting up...")
 
     # Startup tasks
     try:
@@ -51,11 +51,11 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI application
 app = FastAPI(
-    title="TradeGraph Financial Advisor API",
+    title="RADGEGRAPH Financial Advisor API",
     description="""
-    🚀 **TradeGraph Financial Advisor API**
+    🚀 **RADGEGRAPH – Risk and Asset Decision Engine Based on AGENTS, AI, and Knowledge Graph**
 
-    A sophisticated multi-agent financial analysis system that provides:
+    RADGEGRAPH is a sophisticated multi-agent financial analysis system that provides:
 
     - **Real-time Financial Analysis**: Market data, news sentiment, and technical indicators
     - **AI-Powered Recommendations**: Buy/Sell/Hold recommendations with confidence scores
@@ -77,9 +77,9 @@ app = FastAPI(
     """,
     version="1.0.0",
     contact={
-        "name": "TradeGraph Team",
-        "url": "https://tradegraph.com",
-        "email": "support@tradegraph.com",
+        "name": "RADGEGRAPH Team",
+        "url": "https://radgegraph.com",
+        "email": "support@radgegraph.com",
     },
     license_info={
         "name": "MIT",
@@ -127,7 +127,7 @@ async def root():
         return """
         <html>
             <head>
-                <title>TradeGraph Financial Advisor API</title>
+                <title>RADGEGRAPH Financial Advisor API</title>
                 <style>
                     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                            margin: 0; padding: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -142,7 +142,8 @@ async def root():
             </head>
             <body>
                 <div class="container">
-                    <div class="logo">📈 TradeGraph API</div>
+                    <div class="logo">📈 RADGEGRAPH API</div>
+                    <p>Risk and Asset Decision Engine Based on AGENTS, AI, and Knowledge Graph</p>
                     <p>Frontend not found - running in API-only mode</p>
                     <div class="links">
                         <a href="/docs" class="link">📚 API Documentation</a>
@@ -198,9 +199,9 @@ async def api_info():
     return APIResponse(
         success=True,
         data={
-            "name": "TradeGraph Financial Advisor API",
+            "name": "RADGEGRAPH Financial Advisor API",
             "version": "1.0.0",
-            "description": "AI-powered financial analysis and trading recommendations",
+            "description": "Risk and Asset Decision Engine Based on AGENTS, AI, and Knowledge Graph",
             "features": [
                 "Multi-agent financial analysis",
                 "Real-time market data",

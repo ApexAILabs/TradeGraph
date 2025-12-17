@@ -57,7 +57,7 @@ class WebSocketManager:
         # Send welcome message
         await self.send_personal_message({
             "type": "connection_established",
-            "message": "Connected to TradeGraph Financial Advisor",
+            "message": "Connected to RADGEGRAPH Financial Advisor",
             "timestamp": datetime.now().isoformat(),
             "group": group
         }, websocket)

@@ -2,7 +2,7 @@ import pytest
 from datetime import datetime
 from pydantic import ValidationError
 
-from tradegraph_financial_advisor.models.financial_data import (
+from radgegraph_financial_advisor.models.financial_data import (
     NewsArticle,
     SentimentType,
     CompanyFinancials,
@@ -10,7 +10,7 @@ from tradegraph_financial_advisor.models.financial_data import (
     TechnicalIndicators,
     AnalysisContext,
 )
-from tradegraph_financial_advisor.models.recommendations import (
+from radgegraph_financial_advisor.models.recommendations import (
     TradingRecommendation,
     PortfolioRecommendation,
     RecommendationType,

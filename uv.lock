@@ -4046,7 +4046,7 @@ wheels = [
 ]
 
 [[package]]
-name = "tradegraph-financial-advisor"
+name = "radgegraph-financial-advisor"
 version = "1.0.0"
 source = { editable = "." }
 dependencies = [

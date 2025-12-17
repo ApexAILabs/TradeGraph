@@ -1,15 +1,15 @@
 {
   "repo_notes": [
     {
-      "content": "TradeGraph Financial Advisor is a sophisticated multi-agent financial analysis system built with LangGraph for workflow orchestration, Firecrawl for web scraping financial news, and MCP (Model Context Protocol) for intelligent trading recommendations. The system processes real-time financial news, SEC filings, and market data to provide comprehensive trading recommendations with confidence scores and portfolio optimization.",
-      "author": "TradeGraph Team"
+      "content": "RADGEGRAPH Financial Advisor is a sophisticated multi-agent financial analysis system built with LangGraph for workflow orchestration, Firecrawl for web scraping financial news, and MCP (Model Context Protocol) for intelligent trading recommendations. The system processes real-time financial news, SEC filings, and market data to provide comprehensive trading recommendations with confidence scores and portfolio optimization.",
+      "author": "RADGEGRAPH Team"
     },
     {
       "content": "The core architecture implements a three-agent system: NewsReaderAgent handles financial news scraping and sentiment analysis, FinancialAnalysisAgent processes market data and technical indicators, and ReportAnalysisAgent performs AI-powered SEC filing analysis. These agents coordinate through LangGraph workflows to generate unified portfolio recommendations with risk assessment.",
       "author": "Architecture Team"
     },
     {
-      "content": "The system provides multiple access interfaces including CLI tool (tradegraph command), Python API (FinancialAdvisor class), FastAPI REST API with WebSocket support, and React frontend with real-time data visualization. Analysis types include quick (~30s), standard (~2-3min), and comprehensive (~5-10min) with different depth levels.",
+      "content": "The system provides multiple access interfaces including CLI tool (radgegraph command), Python API (FinancialAdvisor class), FastAPI REST API with WebSocket support, and React frontend with real-time data visualization. Analysis types include quick (~30s), standard (~2-3min), and comprehensive (~5-10min) with different depth levels.",
       "author": "Integration Team"
     },
     {
@@ -17,14 +17,14 @@
       "author": "DevOps Team"
     },
     {
-      "content": "Project structure: src/tradegraph_financial_advisor/ contains the core Python package (agents/, workflows/, models/, services/, utils/, config/), api/ contains FastAPI backend with routers and WebSocket management, frontend/ contains React web interface, tests/ contains comprehensive test suites, and docs/ contains MkDocs documentation with Material theme.",
+      "content": "Project structure: src/radgegraph_financial_advisor/ contains the core Python package (agents/, workflows/, models/, services/, utils/, config/), api/ contains FastAPI backend with routers and WebSocket management, frontend/ contains React web interface, tests/ contains comprehensive test suites, and docs/ contains MkDocs documentation with Material theme.",
       "author": "Development Team"
     }
   ],
   "pages": [
     {
-      "title": "Introduction to TradeGraph Financial Advisor",
-      "purpose": "Provide comprehensive overview of the TradeGraph Financial Advisor system, its purpose, core features, multi-agent architecture, and technology stack mapping similar to RAG Web UI introduction"
+      "title": "Introduction to RADGEGRAPH Financial Advisor",
+      "purpose": "Provide comprehensive overview of the RADGEGRAPH Financial Advisor system, its purpose, core features, multi-agent architecture, and technology stack mapping similar to RAG Web UI introduction"
     },
     {
       "title": "Getting Started",

@@ -2,7 +2,7 @@ import json
 import pytest
 from unittest.mock import Mock, AsyncMock
 
-from tradegraph_financial_advisor.workflows.analysis_workflow import (
+from radgegraph_financial_advisor.workflows.analysis_workflow import (
     FinancialAnalysisWorkflow,
     AnalysisState,
 )

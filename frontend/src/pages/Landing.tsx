@@ -58,7 +58,7 @@ export function Landing() {
                     <ChartBarIcon className="w-5 h-5 text-white" />
                   </div>
                   <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    TradeGraph
+                    RADGEGRAPH
                   </span>
                 </div>
               </div>
@@ -86,11 +86,14 @@ export function Landing() {
               transition={{ duration: 0.8 }}
             >
               <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
-                AI-Powered{' '}
+                RADGEGRAPH{' '}
                 <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Financial Analysis
+                  Financial Analysis Engine
                 </span>
               </h1>
+              <p className="mt-4 text-sm font-semibold uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">
+                Risk and Asset Decision Engine Based on AGENTS, AI, and Knowledge Graph
+              </p>
               <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
                 Make smarter investment decisions with our multi-agent AI system that analyzes market data,
                 news sentiment, and financial reports to provide comprehensive trading recommendations.
@@ -234,7 +237,7 @@ export function Landing() {
               Ready to start investing smarter?
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-gray-600 dark:text-gray-300">
-              Join thousands of investors who use TradeGraph to make data-driven investment decisions.
+              Join thousands of investors who use RADGEGRAPH to make data-driven investment decisions.
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <Link
@@ -256,12 +259,12 @@ export function Landing() {
               <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded flex items-center justify-center">
                 <ChartBarIcon className="w-4 h-4 text-white" />
               </div>
-              <span className="text-sm font-medium text-white">TradeGraph</span>
+              <span className="text-sm font-medium text-white">RADGEGRAPH</span>
             </div>
           </div>
           <div className="mt-8 md:order-1 md:mt-0">
             <p className="text-center text-xs leading-5 text-gray-400">
-              &copy; 2024 TradeGraph Financial Advisor. All rights reserved.
+              &copy; 2024 RADGEGRAPH Financial Advisor. All rights reserved.
             </p>
           </div>
         </div>

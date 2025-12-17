@@ -2,16 +2,16 @@ import pytest
 from unittest.mock import patch
 from datetime import datetime
 
-from tradegraph_financial_advisor.agents.base_agent import BaseAgent
-from tradegraph_financial_advisor.agents.news_agent import NewsReaderAgent
-from tradegraph_financial_advisor.agents.report_analysis_agent import (
+from radgegraph_financial_advisor.agents.base_agent import BaseAgent
+from radgegraph_financial_advisor.agents.news_agent import NewsReaderAgent
+from radgegraph_financial_advisor.agents.report_analysis_agent import (
     ReportAnalysisAgent,
 )
-from tradegraph_financial_advisor.agents.recommendation_engine import (
+from radgegraph_financial_advisor.agents.recommendation_engine import (
     TradingRecommendationEngine,
 )
-from tradegraph_financial_advisor.agents.financial_agent import FinancialAnalysisAgent
-from tradegraph_financial_advisor.models.financial_data import (
+from radgegraph_financial_advisor.agents.financial_agent import FinancialAnalysisAgent
+from radgegraph_financial_advisor.models.financial_data import (
     NewsArticle,
     SentimentType,
 )
@@ -347,7 +347,7 @@ class TestTradingRecommendationEngine:
     async def test_recommendation_engine_initialization(self, mock_langchain_llm):
         """Test recommendation engine initialization."""
         with patch(
-            "tradegraph_financial_advisor.agents.recommendation_engine.ChatOpenAI",
+            "radgegraph_financial_advisor.agents.recommendation_engine.ChatOpenAI",
             return_value=mock_langchain_llm,
         ):
             engine = TradingRecommendationEngine()
@@ -360,7 +360,7 @@ class TestTradingRecommendationEngine:
     ):
         """Test recommendation generation execution."""
         with patch(
-            "tradegraph_financial_advisor.agents.recommendation_engine.ChatOpenAI",
+            "radgegraph_financial_advisor.agents.recommendation_engine.ChatOpenAI",
             return_value=mock_langchain_llm,
         ):
             engine = TradingRecommendationEngine()
@@ -387,7 +387,7 @@ class TestTradingRecommendationEngine:
     ):
         """Test fundamental score calculation."""
         with patch(
-            "tradegraph_financial_advisor.agents.recommendation_engine.ChatOpenAI",
+            "radgegraph_financial_advisor.agents.recommendation_engine.ChatOpenAI",
             return_value=mock_langchain_llm,
         ):
             engine = TradingRecommendationEngine()
@@ -408,7 +408,7 @@ class TestTradingRecommendationEngine:
     ):
         """Test technical score calculation."""
         with patch(
-            "tradegraph_financial_advisor.agents.recommendation_engine.ChatOpenAI",
+            "radgegraph_financial_advisor.agents.recommendation_engine.ChatOpenAI",
             return_value=mock_langchain_llm,
         ):
             engine = TradingRecommendationEngine()
@@ -424,7 +424,7 @@ class TestTradingRecommendationEngine:
     async def test_sentiment_score_calculation(self, mock_langchain_llm):
         """Test sentiment score calculation."""
         with patch(
-            "tradegraph_financial_advisor.agents.recommendation_engine.ChatOpenAI",
+            "radgegraph_financial_advisor.agents.recommendation_engine.ChatOpenAI",
             return_value=mock_langchain_llm,
         ):
             engine = TradingRecommendationEngine()
@@ -443,7 +443,7 @@ class TestTradingRecommendationEngine:
     async def test_risk_level_calculation(self, mock_langchain_llm):
         """Test risk level calculation."""
         with patch(
-            "tradegraph_financial_advisor.agents.recommendation_engine.ChatOpenAI",
+            "radgegraph_financial_advisor.agents.recommendation_engine.ChatOpenAI",
             return_value=mock_langchain_llm,
         ):
             engine = TradingRecommendationEngine()
@@ -469,12 +469,12 @@ class TestTradingRecommendationEngine:
     async def test_position_size_calculation(self, mock_langchain_llm):
         """Test position size calculation."""
         with patch(
-            "tradegraph_financial_advisor.agents.recommendation_engine.ChatOpenAI",
+            "radgegraph_financial_advisor.agents.recommendation_engine.ChatOpenAI",
             return_value=mock_langchain_llm,
         ):
             engine = TradingRecommendationEngine()
 
-            from tradegraph_financial_advisor.models.recommendations import (
+            from radgegraph_financial_advisor.models.recommendations import (
                 RiskLevel,
                 RecommendationType,
             )
@@ -511,12 +511,12 @@ class TestTradingRecommendationEngine:
     async def test_price_targets_calculation(self, mock_langchain_llm):
         """Test price target calculation."""
         with patch(
-            "tradegraph_financial_advisor.agents.recommendation_engine.ChatOpenAI",
+            "radgegraph_financial_advisor.agents.recommendation_engine.ChatOpenAI",
             return_value=mock_langchain_llm,
         ):
             engine = TradingRecommendationEngine()
 
-            from tradegraph_financial_advisor.models.recommendations import (
+            from radgegraph_financial_advisor.models.recommendations import (
                 RecommendationType,
             )
 

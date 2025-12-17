@@ -4,8 +4,8 @@ import os
 from unittest.mock import AsyncMock
 from datetime import datetime, timedelta
 
-from tradegraph_financial_advisor.models.financial_data import NewsArticle
-from tradegraph_financial_advisor.config.settings import refresh_openai_api_key
+from radgegraph_financial_advisor.models.financial_data import NewsArticle
+from radgegraph_financial_advisor.config.settings import refresh_openai_api_key
 
 # Test configuration
 os.environ["OPENAI_API_KEY"] = "test-openai-key"

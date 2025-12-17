@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="assets/TradeGraph.png" alt="TradeGraph Logo" width="500"/>
+  <img src="assets/RADGEGRAPH.png" alt="RADGEGRAPH Logo" width="500"/>
 </p>
 
-# TradeGraph Financial Advisor
+# RADGEGRAPH – Risk and Asset Decision Engine Based on AGENTS, AI, and Knowledge Graph
 
-A sophisticated multi-agent financial analysis system that uses **LangGraph**, **ddgs**, and **Crawl4AI** to provide intelligent trading recommendations based on real-time financial news and comprehensive company analysis.
+RADGEGRAPH (Risk and Asset Decision Engine Based on AGENTS, AI, and Knowledge Graph) is a sophisticated multi-agent financial analysis system that uses **LangGraph**, **ddgs**, and **Crawl4AI** to provide intelligent trading recommendations based on real-time financial news and comprehensive company analysis.
 
 ## 🚀 Features
 
@@ -29,22 +29,22 @@ A sophisticated multi-agent financial analysis system that uses **LangGraph**, *
 
 ```bash
 # Clone the repository
-git clone https://github.com/Mehranmzn/TradeGraph.git
-cd financial-advisor
+git clone https://github.com/Mehranmzn/RADGEGRAPH.git
+cd RADGEGRAPH
 
 # Install the package
 pip install -e .
 
 # Or install from PyPI (when published)
-pip install tradegraph-financial-advisor
+pip install radgegraph-financial-advisor
 ```
 
 ### Development Installation
 
 ```bash
 # Clone and install in development mode
-git clone https://github.com/Mehranmzn/TradeGraph.git
-cd financial-advisor
+git clone https://github.com/Mehranmzn/RADGEGRAPH.git
+cd RADGEGRAPH
 
 # Create virtual environment
 python -m venv venv
@@ -87,23 +87,23 @@ DEFAULT_PORTFOLIO_SIZE=100000
 
 ```bash
 # Basic analysis
-uv run tradegraph AAPL MSFT GOOGL
+uv run radgegraph AAPL MSFT GOOGL
 
 # Comprehensive analysis with custom parameters
-uv run tradegraph AAPL MSFT GOOGL \
+uv run radgegraph AAPL MSFT GOOGL \
   --portfolio-size 250000 \
   --risk-tolerance aggressive \
   --time-horizon long_term \
   --analysis-type comprehensive
 
 # Quick analysis
-uv run tradegraph TSLA NVDA --analysis-type quick
+uv run radgegraph TSLA NVDA --analysis-type quick
 
 # Generate alerts only
-uv run tradegraph AAPL --alerts-only
+uv run radgegraph AAPL --alerts-only
 
 # JSON output
-uv run tradegraph AAPL MSFT --output-format json > analysis.json
+uv run radgegraph AAPL MSFT --output-format json > analysis.json
 ```
 
 ### Real-Time WebSocket Channels
@@ -117,7 +117,7 @@ The repository now ships with a FastAPI service that exposes three dedicated Web
 Launch the channel server with `uv` and subscribe from any WebSocket client:
 
 ```bash
-uv run uvicorn tradegraph_financial_advisor.server.channel_server:app --reload
+uv run uvicorn radgegraph_financial_advisor.server.channel_server:app --reload
 ```
 
 Example subscription (JavaScript snippet):
@@ -134,7 +134,7 @@ socket.onmessage = (event) => {
 Financial agents can now condense all three channels into a PDF that covers news context, buy/hold/sell guidance, risk mix, and multi-horizon price trends. Trend snapshots are limited to month/week/day/hour windows so the report explicitly reflects month-to-date momentum.
 
 ```bash
-uv run tradegraph AAPL BTC-USD --analysis-type comprehensive --channel-report \
+uv run radgegraph AAPL BTC-USD --analysis-type comprehensive --channel-report \
   --pdf-path results/aapl_crypto_multichannel.pdf
 ```
 
@@ -142,7 +142,7 @@ uv run tradegraph AAPL BTC-USD --analysis-type comprehensive --channel-report \
 
 ```python
 import asyncio
-from tradegraph_financial_advisor import FinancialAdvisor
+from radgegraph_financial_advisor import FinancialAdvisor
 
 async def main():
     advisor = FinancialAdvisor()
@@ -177,8 +177,8 @@ results = asyncio.run(main())
 ### Advanced Usage
 
 ```python
-from tradegraph_financial_advisor.workflows import FinancialAnalysisWorkflow
-from tradegraph_financial_advisor.agents import (
+from radgegraph_financial_advisor.workflows import FinancialAnalysisWorkflow
+from radgegraph_financial_advisor.agents import (
     NewsReaderAgent,
     FinancialAnalysisAgent,
     ReportAnalysisAgent
@@ -214,7 +214,7 @@ async def advanced_analysis():
 
 ```
 ================================================================================
-TRADEGRAPH FINANCIAL ADVISOR - ANALYSIS RESULTS
+RADGEGRAPH FINANCIAL ADVISOR - ANALYSIS RESULTS
 ================================================================================
 
 Analysis Date: 2024-12-20T15:30:00
@@ -351,7 +351,7 @@ GOOGL: HOLD (Confidence: 65.0%)
 ### Adding Custom Agents
 
 ```python
-from tradegraph_financial_advisor.agents import BaseAgent
+from radgegraph_financial_advisor.agents import BaseAgent
 
 class CustomAnalysisAgent(BaseAgent):
     def __init__(self, **kwargs):
@@ -370,7 +370,7 @@ class CustomAnalysisAgent(BaseAgent):
 
 ```python
 from langgraph.graph import StateGraph
-from tradegraph_financial_advisor.workflows import AnalysisState
+from radgegraph_financial_advisor.workflows import AnalysisState
 
 def create_custom_workflow():
     workflow = StateGraph(AnalysisState)
@@ -392,7 +392,7 @@ def create_custom_workflow():
 pytest
 
 # Run with coverage
-pytest --cov=tradegraph_financial_advisor
+pytest --cov=radgegraph_financial_advisor
 
 # Run specific test categories
 pytest tests/test_agents.py
@@ -454,9 +454,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-- **GitHub Issues**: [Report bugs or request features](https://github.com/tradegraph/financial-advisor/issues)
-- **Documentation**: [Full documentation](https://deepwiki.com/Mehranmzn/TradeGraph)
-- **Community**: [Discord server](https://discord.gg/tradegraph)
+- **GitHub Issues**: [Report bugs or request features](https://github.com/radgegraph/financial-advisor/issues)
+- **Documentation**: [Full documentation](https://deepwiki.com/Mehranmzn/RADGEGRAPH)
+- **Community**: [Discord server](https://discord.gg/radgegraph)
 
 ## 🙏 Acknowledgments
 

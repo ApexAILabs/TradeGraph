@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
-from tradegraph_financial_advisor.models.financial_data import NewsArticle
-from tradegraph_financial_advisor.repositories import NewsRepository
+from radgegraph_financial_advisor.models.financial_data import NewsArticle
+from radgegraph_financial_advisor.repositories import NewsRepository
 
 
 def _sample_article(**overrides):

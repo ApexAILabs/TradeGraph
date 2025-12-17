@@ -91,7 +91,7 @@ async def test_services() -> Dict[str, str]:
     # Test external APIs
     try:
         # Test if we can import and initialize core components
-        from tradegraph_financial_advisor import FinancialAdvisor
+        from radgegraph_financial_advisor import FinancialAdvisor
 
         FinancialAdvisor()
         services["financial_advisor"] = "healthy"

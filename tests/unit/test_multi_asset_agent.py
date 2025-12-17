@@ -1,9 +1,9 @@
 import pytest
 
-from tradegraph_financial_advisor.agents.multi_asset_allocation_agent import (
+from radgegraph_financial_advisor.agents.multi_asset_allocation_agent import (
     MultiAssetAllocationAgent,
 )
-from tradegraph_financial_advisor.reporting import MultiAssetPDFReportWriter
+from radgegraph_financial_advisor.reporting import MultiAssetPDFReportWriter
 
 
 @pytest.mark.asyncio
